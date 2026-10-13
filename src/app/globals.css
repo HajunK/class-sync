@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy-950: #040b33;
+  --color-navy-900: #071350;
+  --color-navy-800: #0d1d6b;
+  --color-navy-700: #1a2c85;
+  --color-navy-600: #2f429c;
+  --color-navy-100: #e6e9f5;
+  --color-navy-50: #f3f5fb;
+
+  --color-gold-600: #d9a21a;
+  --color-gold-500: #fcc438;
+  --color-gold-400: #fdd168;
+  --color-gold-100: #fff3d1;
+  --color-gold-50: #fffaeb;
+
+  --color-paper: #f7f8fc;
+  --color-ink: #0f172a;
+  --color-muted: #5b6475;
+  --color-line: #e3e6ef;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
+
+  --shadow-card: 0 1px 2px rgb(7 19 80 / 0.04), 0 4px 16px rgb(7 19 80 / 0.06);
+  --shadow-lift: 0 2px 4px rgb(7 19 80 / 0.06), 0 12px 32px rgb(7 19 80 / 0.12);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-gold-400);
+  color: var(--color-navy-900);
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500 cursor-pointer whitespace-nowrap;
+  }
+  .btn-sm {
+    @apply px-3.5 py-1.5 text-xs;
+  }
+  .btn-primary {
+    @apply bg-navy-900 text-white hover:bg-navy-800 active:scale-[0.98];
+  }
+  .btn-gold {
+    @apply bg-gold-500 text-navy-900 hover:bg-gold-400 active:scale-[0.98];
+  }
+  .btn-outline {
+    @apply border border-line bg-white text-navy-900 hover:border-navy-900/30 hover:bg-navy-50;
+  }
+  .btn-ghost {
+    @apply text-navy-900 hover:bg-navy-50;
+  }
+  .btn-danger {
+    @apply border border-red-200 bg-white text-red-700 hover:bg-red-50;
+  }
+
+  .card {
+    @apply rounded-2xl border border-line bg-white shadow-[var(--shadow-card)];
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-semibold tracking-wide text-navy-900/80 uppercase;
+  }
+  .input {
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-muted/60 transition outline-none focus:border-navy-700 focus:ring-4 focus:ring-navy-900/8;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold tracking-[0.18em] text-gold-600 uppercase;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase;
+  }
+}
+
+/* Event type accents */
+.type-quiz { --type: #b88a00; --type-bg: #fff6d6; }
+.type-exam { --type: #c0262d; --type-bg: #fde8e8; }
+.type-assignment { --type: #2357c6; --type-bg: #e5eefc; }
+.type-deadline { --type: #6d35c9; --type-bg: #efe7fb; }
+.type-other { --type: #4a5568; --type-bg: #edf0f4; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-fade-up {
+  animation: fade-up 0.45s ease-out both;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgb(252 196 56 / 0.6); }
+  100% { box-shadow: 0 0 0 8px rgb(252 196 56 / 0); }
+}
+.pulse-new {
+  animation: pulse-ring 1.6s ease-out infinite;
+}
+
+.prose-note p + p { margin-top: 0.5rem; }
+
+/* ── Note editor document (Tiptap) ───────────────────────── */
+.doc {
+  min-height: 60vh;
+  padding: 2rem 0.25rem;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--color-ink);
+}
+.doc > * + * { margin-top: 0.6em; }
+.doc h1 { font-family: var(--font-serif); font-size: 1.6rem; font-weight: 600; color: var(--color-navy-900); margin-top: 1.2em; }
+.doc h2 { font-size: 1.15rem; font-weight: 700; color: var(--color-navy-900); margin-top: 1em; }
+.doc h1:first-child, .doc h2:first-child { margin-top: 0; }
+.doc ul { list-style: disc; padding-left: 1.4rem; }
+.doc ol { list-style: decimal; padding-left: 1.4rem; }
+.doc li > p { margin: 0; }
+.doc li + li { margin-top: 0.15em; }
+.doc blockquote { border-left: 3px solid var(--color-gold-500); padding-left: 0.9rem; color: var(--color-muted); }
+.doc code { background: var(--color-paper); border-radius: 4px; padding: 0 4px; font-size: 0.9em; }
+.doc a { color: #2357c6; text-decoration: underline; }
+.doc p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #9aa3b5;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

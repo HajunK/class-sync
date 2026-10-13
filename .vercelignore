@@ -1,0 +1,13 @@
+# Secrets stay local — env vars are set in the Vercel project instead
+.env*
+!.env.example
+
+# Local-only data, caches and logs
+.emulator-data
+.next
+node_modules
+*.log
+.claude
+
+# Interrupted emulator exports
+firebase-export-*

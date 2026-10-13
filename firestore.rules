@@ -1,0 +1,88 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function classDoc(classId) {
+      return get(/databases/$(database)/documents/classes/$(classId));
+    }
+
+    function isMember(classId) {
+      return signedIn() && request.auth.uid in classDoc(classId).data.memberIds;
+    }
+
+    // Membership as it will be after the current write/batch commits.
+    function isMemberAfter(classId) {
+      return signedIn()
+        && request.auth.uid in getAfter(/databases/$(database)/documents/classes/$(classId)).data.memberIds;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == uid;
+
+      // Grade calculator data is private: only the student can read or write it.
+      match /calculator/{docId} {
+        allow read, write: if signedIn() && request.auth.uid == uid;
+      }
+    }
+
+    // Join codes: anyone signed in can look up a code they were given,
+    // but codes can't be listed.
+    match /classCodes/{code} {
+      allow get: if signedIn();
+      allow create: if signedIn()
+        && getAfter(/databases/$(database)/documents/classes/$(request.resource.data.classId)).data.createdBy == request.auth.uid;
+    }
+
+    match /classes/{classId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.memberIds;
+
+      allow create: if signedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.memberIds == [request.auth.uid];
+
+      // Members can update the class. A non-member can only add themselves
+      // to memberIds (joining with a class code).
+      allow update: if signedIn() && (
+        request.auth.uid in resource.data.memberIds
+        || (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds'])
+          && request.resource.data.memberIds.toSet().difference(resource.data.memberIds.toSet()) == [request.auth.uid].toSet()
+        )
+      );
+
+      match /members/{uid} {
+        allow read: if isMember(classId);
+        allow create, update: if signedIn() && request.auth.uid == uid && isMemberAfter(classId);
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
+
+      match /events/{eventId} {
+        allow read, create, update: if isMember(classId);
+        allow delete: if isMember(classId) && resource.data.createdBy == request.auth.uid;
+
+        match /history/{historyId} {
+          allow read: if isMember(classId);
+          allow create: if isMember(classId) && request.resource.data.by == request.auth.uid;
+        }
+      }
+
+      match /sessions/{sessionId} {
+        allow read, create, update: if isMember(classId);
+
+        // Each student has exactly one note per session: notes/{their uid}
+        match /notes/{uid} {
+          allow read: if isMember(classId);
+          allow create, update: if isMember(classId)
+            && request.auth.uid == uid
+            && request.resource.data.authorId == uid;
+        }
+      }
+    }
+  }
+}
