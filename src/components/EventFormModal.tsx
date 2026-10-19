@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { addEvent, editEvent, type Actor, type EventInput } from "@/lib/db";
 import { todayKey } from "@/lib/dates";
 import { EVENT_TYPES, type ClassEvent, type ClassRoom } from "@/lib/types";
-import { Field, Modal, Spinner } from "./ui";
+import { Field, Modal, Popover, Spinner } from "./ui";
 
 interface Props {
   open: boolean;
@@ -16,11 +16,22 @@ interface Props {
   event?: ClassEvent | null;
   defaultDate?: string;
   defaultClassId?: string;
+  /** Open as a popover at this screen point (e.g. a clicked calendar day) instead of a centered modal. */
+  anchor?: { x: number; y: number } | null;
 }
 
 export function EventFormModal(props: Props) {
+  const title = props.event ? "Correct entry" : "Add to class calendar";
+  if (props.anchor) {
+    return (
+      <Popover anchor={props.open ? props.anchor : null} onClose={props.onClose} title={title}>
+        {/* Stays rendered while closing so the form shrinks away with the popover. */}
+        <EventForm key={`${props.defaultDate}-${props.anchor.x}-${props.anchor.y}`} {...props} />
+      </Popover>
+    );
+  }
   return (
-    <Modal open={props.open} onClose={props.onClose} title={props.event ? "Correct entry" : "Add to class calendar"}>
+    <Modal open={props.open} onClose={props.onClose} title={title}>
       {props.open && <EventForm key={props.event?.id ?? "new"} {...props} />}
     </Modal>
   );

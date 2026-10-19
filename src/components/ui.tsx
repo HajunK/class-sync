@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { Loader2, X } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { EventType } from "@/lib/types";
 
 export function Spinner({ className }: { className?: string }) {
@@ -66,6 +66,102 @@ export function Modal({
         </div>
         <div className="px-6 py-5">{children}</div>
       </div>
+    </div>
+  );
+}
+
+const POPOVER_GAP = 8;
+
+/**
+ * A small dialog opened at a point on the screen (e.g. where the user clicked).
+ * Unlike Modal it doesn't dim or block the page; clicking outside or Escape closes it.
+ * It grows out of the point when opening and shrinks back into it when closing.
+ */
+export function Popover({
+  anchor,
+  onClose,
+  title,
+  children,
+}: {
+  /** Viewport point to open next to; null closes it. */
+  anchor: { x: number; y: number } | null;
+  onClose: () => void;
+  title: ReactNode;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  // The point it's showing at. Outlives `anchor` while the close animation plays.
+  const [shown, setShown] = useState(anchor);
+  if (anchor && anchor !== shown) setShown(anchor);
+  const closing = !anchor && shown != null;
+
+  // Open to the right of and below the point, flipping or clamping so it stays on screen.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!shown || !el) return setPos(null);
+    // offset* sizes ignore the scale animation, unlike getBoundingClientRect.
+    const width = el.offsetWidth;
+    const height = el.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left = shown.x + POPOVER_GAP;
+    if (left + width > vw - POPOVER_GAP) left = shown.x - width - POPOVER_GAP;
+    let top = shown.y + POPOVER_GAP;
+    if (top + height > vh - POPOVER_GAP) top = shown.y - height - POPOVER_GAP;
+    setPos({
+      left: Math.min(Math.max(POPOVER_GAP, left), vw - width - POPOVER_GAP),
+      top: Math.min(Math.max(POPOVER_GAP, top), vh - height - POPOVER_GAP),
+    });
+  }, [shown]);
+
+  useEffect(() => {
+    if (!anchor) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onDown = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && onClose();
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [anchor, onClose]);
+
+  // Unmount once the close animation ends; the timer covers browsers that skip animations.
+  useEffect(() => {
+    if (!closing) return;
+    const t = setTimeout(() => setShown(null), 300);
+    return () => clearTimeout(t);
+  }, [closing]);
+
+  if (!shown) return null;
+  return (
+    <div
+      // A new point restarts the open animation, even mid-close.
+      key={`${shown.x},${shown.y}`}
+      ref={ref}
+      role="dialog"
+      aria-label={typeof title === "string" ? title : undefined}
+      aria-hidden={closing || undefined}
+      onAnimationEnd={(e) => closing && e.target === e.currentTarget && setShown(null)}
+      className={clsx(
+        "fixed z-50 max-h-[calc(100vh-16px)] w-[min(360px,calc(100vw-16px))] overflow-y-auto rounded-2xl border border-line bg-white shadow-[var(--shadow-lift)]",
+        pos && (closing ? "animate-pop-out pointer-events-none" : "animate-pop-in"),
+      )}
+      // Hidden until measured so it doesn't flash at the wrong spot; then it scales from the clicked point.
+      style={
+        pos
+          ? { left: pos.left, top: pos.top, transformOrigin: `${shown.x - pos.left}px ${shown.y - pos.top}px` }
+          : { left: 0, top: 0, visibility: "hidden" }
+      }
+    >
+      <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
+        <h2 className="font-serif text-base font-semibold text-navy-900">{title}</h2>
+        <button onClick={onClose} className="rounded-full p-1 text-muted hover:bg-navy-50 hover:text-navy-900" aria-label="Close">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="px-4 py-4">{children}</div>
     </div>
   );
 }

@@ -12,20 +12,23 @@ import { fromKey, todayKey, tsToDate } from "@/lib/dates";
 import type { ClassEvent } from "@/lib/types";
 
 export default function CalendarPage() {
-  const { actor, visible, classById, memberships, selectedId } = useWorkspace();
-  const classIds = useMemo(() => visible.map((c) => c.id), [visible]);
-  const events = useEvents(classIds);
+  const { actor, classes, visible, classById, memberships, selectedId } = useWorkspace();
+  // The timeline shows every class; the month view and the banner follow the sidebar's pick.
+  const allClassIds = useMemo(() => classes.map((c) => c.id), [classes]);
+  const allEvents = useEvents(allClassIds);
+  const visibleIds = useMemo(() => new Set(visible.map((c) => c.id)), [visible]);
+  const events = useMemo(() => allEvents.filter((e) => visibleIds.has(e.classId)), [allEvents, visibleIds]);
 
   const [openId, setOpenId] = useState<string | null>(null);
-  const [form, setForm] = useState<{ open: boolean; event?: ClassEvent | null; date?: string }>({ open: false });
-  const opened = openId ? events.find((e) => e.id === openId) ?? null : null;
+  const [form, setForm] = useState<{ open: boolean; event?: ClassEvent | null; date?: string; anchor?: { x: number; y: number }; classId?: string }>({ open: false });
+  const opened = openId ? allEvents.find((e) => e.id === openId) ?? null : null;
 
   // Missed-announcement catch-up: upcoming entries a classmate added or changed since my last visit.
   const today = todayKey();
-  const newEvents = events.filter(
-    (e) => e.date >= today && memberships[e.classId] && isNewForMe(e, actor.uid, tsToDate(memberships[e.classId].lastSeenAt)),
-  );
-  const newIds = new Set(newEvents.map((e) => e.id));
+  const isNew = (e: ClassEvent) =>
+    e.date >= today && !!memberships[e.classId] && isNewForMe(e, actor.uid, tsToDate(memberships[e.classId].lastSeenAt));
+  const newEvents = events.filter(isNew);
+  const newIds = new Set(allEvents.filter(isNew).map((e) => e.id));
 
   return (
     <div className="space-y-5">
@@ -72,10 +75,13 @@ export default function CalendarPage() {
 
       <CalendarView
         events={events}
+        allEvents={allEvents}
+        classes={classes}
+        selectedId={selectedId}
         classById={classById}
         newIds={newIds}
         onSelectEvent={(e) => setOpenId(e.id)}
-        onAddOnDate={(date) => setForm({ open: true, date })}
+        onAddOnDate={(date, anchor, classId) => setForm({ open: true, date, anchor, classId })}
       />
 
       <EventDetailModal
@@ -92,10 +98,13 @@ export default function CalendarPage() {
         open={form.open}
         event={form.event}
         defaultDate={form.date}
-        defaultClassId={selectedId ?? undefined}
-        classes={visible}
+        anchor={form.anchor}
+        defaultClassId={form.classId ?? selectedId ?? undefined}
+        // A timeline row can name a class outside the sidebar's pick, so offer every class then.
+        classes={form.classId ? classes : visible}
         actor={actor}
-        onClose={() => setForm({ open: false })}
+        // Keep the click point so the popover can animate closed where it opened.
+        onClose={() => setForm((f) => ({ ...f, open: false }))}
       />
     </div>
   );

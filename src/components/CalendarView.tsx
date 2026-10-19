@@ -9,16 +9,26 @@ import { formatTime, toKey, todayKey } from "@/lib/dates";
 import type { ClassEvent, ClassRoom } from "@/lib/types";
 
 interface Props {
+  /** Entries for the month view (the classes in view). */
   events: ClassEvent[];
+  /** Entries for every class, for the timeline. */
+  allEvents: ClassEvent[];
+  /** Every class the student is in: one timeline row each. */
+  classes: ClassRoom[];
+  /** The class picked in the sidebar, highlighted in the timeline. */
+  selectedId: string | null;
   classById: Record<string, ClassRoom>;
   /** ids of entries to highlight as new */
   newIds: Set<string>;
   onSelectEvent: (e: ClassEvent) => void;
-  onAddOnDate: (dateKey: string) => void;
+  /** point is where the day was clicked, so the add form can open there; classId is set from a timeline row. */
+  onAddOnDate: (dateKey: string, point: { x: number; y: number }, classId?: string) => void;
 }
 
-export function CalendarView({ events, classById, newIds, onSelectEvent, onAddOnDate }: Props) {
-  const [view, setView] = useState<"month" | "week">("month");
+type View = "month" | "timeline";
+
+export function CalendarView({ events, allEvents, classes, selectedId, classById, newIds, onSelectEvent, onAddOnDate }: Props) {
+  const [view, setView] = useState<View>("month");
   const [cursor, setCursor] = useState(() => new Date());
 
   const byDay = useMemo(() => {
@@ -26,6 +36,13 @@ export function CalendarView({ events, classById, newIds, onSelectEvent, onAddOn
     for (const e of events) (map[e.date] ||= []).push(e);
     return map;
   }, [events]);
+
+  // "classId|date" → entries, for the timeline cells.
+  const byClassDay = useMemo(() => {
+    const map: Record<string, ClassEvent[]> = {};
+    for (const e of allEvents) (map[`${e.classId}|${e.date}`] ||= []).push(e);
+    return map;
+  }, [allEvents]);
 
   const days = useMemo(() => {
     const start = view === "month" ? startOfWeek(startOfMonth(cursor)) : startOfWeek(cursor);
@@ -45,7 +62,7 @@ export function CalendarView({ events, classById, newIds, onSelectEvent, onAddOn
           {view === "month" ? format(cursor, "MMMM yyyy") : `Week of ${format(days[0], "MMM d")}`}
         </h2>
         <div className="flex rounded-lg border border-line p-0.5 text-xs font-semibold">
-          {(["month", "week"] as const).map((v) => (
+          {(["month", "timeline"] as View[]).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
@@ -66,66 +83,156 @@ export function CalendarView({ events, classById, newIds, onSelectEvent, onAddOn
         </button>
       </div>
 
-      <div className="grid grid-cols-7 border-b border-line text-center text-[11px] font-semibold text-muted uppercase">
-        {days.slice(0, 7).map((d) => (
-          <div key={d.toISOString()} className="py-2">
-            {format(d, "EEE")}
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-7">
-        {days.map((d) => {
-          const key = toKey(d);
-          const list = byDay[key] || [];
-          const muted = view === "month" && !isSameMonth(d, cursor);
-          return (
-            <div
-              key={key}
-              onClick={() => onAddOnDate(key)}
-              title="Click to add an entry"
-              className={clsx(
-                "cursor-pointer border-r border-b border-line p-1 transition-colors hover:bg-navy-50/50 [&:nth-child(7n)]:border-r-0",
-                view === "month" ? "min-h-[64px] sm:min-h-[104px]" : "min-h-[260px]",
-                muted && "bg-paper/80",
-              )}
-            >
-              <span
-                className={clsx(
-                  "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
-                  key === today ? "bg-navy-900 text-white" : muted ? "text-muted/50" : "text-navy-900",
-                )}
-              >
-                {format(d, "d")}
-              </span>
-              <div className="mt-0.5 space-y-1">
-                {list.map((e) => (
-                  <button
-                    key={e.id}
-                    onClick={(ev) => {
-                      ev.stopPropagation();
-                      onSelectEvent(e);
-                    }}
-                    className={clsx(
-                      `type-${e.type}`,
-                      "relative flex w-full items-center gap-1 truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium",
-                      newIds.has(e.id) && "ring-2 ring-gold-500",
-                    )}
-                    style={{ background: "var(--type-bg)", color: "var(--type)" }}
-                  >
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: classById[e.classId]?.color }} />
-                    <span className="truncate">
-                      {view === "week" && e.time ? `${formatTime(e.time)} ` : ""}
-                      {e.title}
-                    </span>
-                    {isVerified(e) && <CheckCircle2 className="ml-auto hidden h-3 w-3 shrink-0 text-emerald-600 sm:block" />}
-                  </button>
-                ))}
+      {view === "month" ? (
+        <>
+          <div className="grid grid-cols-7 border-b border-line text-center text-[11px] font-semibold text-muted uppercase">
+            {days.slice(0, 7).map((d) => (
+              <div key={d.toISOString()} className="py-2">
+                {format(d, "EEE")}
               </div>
-            </div>
-          );
-        })}
-      </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7">
+            {days.map((d) => {
+              const key = toKey(d);
+              const muted = !isSameMonth(d, cursor);
+              return (
+                <div
+                  key={key}
+                  onClick={(ev) => onAddOnDate(key, { x: ev.clientX, y: ev.clientY })}
+                  title="Click to add an entry"
+                  className={clsx(
+                    "min-h-[64px] cursor-pointer border-r border-b border-line p-1 transition-colors hover:bg-navy-50/50 sm:min-h-[104px] [&:nth-child(7n)]:border-r-0",
+                    muted && "bg-paper/80",
+                  )}
+                >
+                  <DayNumber date={d} isToday={key === today} muted={muted} />
+                  <div className="mt-0.5 space-y-1">
+                    {(byDay[key] || []).map((e) => (
+                      <EventChip key={e.id} event={e} cls={classById[e.classId]} isNew={newIds.has(e.id)} onSelect={onSelectEvent} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : classes.length === 0 ? (
+        <p className="px-5 py-12 text-center text-sm text-muted">Join or create a class to see your week here.</p>
+      ) : (
+        // Days across, one row per class. Scrolls sideways on narrow screens with the class names pinned.
+        <div className="overflow-x-auto">
+          <div className="grid min-w-[760px] grid-cols-[minmax(132px,176px)_repeat(7,minmax(0,1fr))]">
+            <div className="sticky left-0 z-10 border-r border-b border-line bg-white" />
+            {days.map((d, i) => {
+              const key = toKey(d);
+              return (
+                <div
+                  key={key}
+                  className={clsx(
+                    "flex items-center justify-center gap-1.5 border-b border-line py-2 text-[11px] font-semibold text-muted uppercase",
+                    i < 6 && "border-r",
+                  )}
+                >
+                  {format(d, "EEE")}
+                  <DayNumber date={d} isToday={key === today} />
+                </div>
+              );
+            })}
+
+            {classes.map((c) => {
+              const selected = c.id === selectedId;
+              return (
+                <div key={c.id} className="contents">
+                  <div
+                    className={clsx(
+                      "sticky left-0 z-10 flex items-start gap-2 border-r border-b border-line px-3 py-2.5",
+                      selected ? "bg-navy-50" : "bg-white",
+                    )}
+                  >
+                    <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-navy-900">{c.course}</p>
+                      <p className="truncate text-xs text-muted">{c.section}</p>
+                    </div>
+                  </div>
+                  {days.map((d, i) => {
+                    const key = toKey(d);
+                    return (
+                      <div
+                        key={key}
+                        onClick={(ev) => onAddOnDate(key, { x: ev.clientX, y: ev.clientY }, c.id)}
+                        title={`Add an entry for ${c.course}`}
+                        className={clsx(
+                          "min-h-[72px] cursor-pointer space-y-1 border-b border-line p-1 transition-colors hover:bg-navy-50/50",
+                          i < 6 && "border-r",
+                          selected && "bg-navy-50/40",
+                        )}
+                      >
+                        {(byClassDay[`${c.id}|${key}`] || []).map((e) => (
+                          <EventChip key={e.id} event={e} isNew={newIds.has(e.id)} onSelect={onSelectEvent} showTime />
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function DayNumber({ date, isToday, muted }: { date: Date; isToday: boolean; muted?: boolean }) {
+  return (
+    <span
+      className={clsx(
+        "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
+        isToday ? "bg-navy-900 text-white" : muted ? "text-muted/50" : "text-navy-900",
+      )}
+    >
+      {format(date, "d")}
+    </span>
+  );
+}
+
+/** An entry in a day cell. The class dot is left out in the timeline, where the row already names the class. */
+function EventChip({
+  event: e,
+  cls,
+  isNew,
+  onSelect,
+  showTime,
+}: {
+  event: ClassEvent;
+  cls?: ClassRoom;
+  isNew: boolean;
+  onSelect: (e: ClassEvent) => void;
+  showTime?: boolean;
+}) {
+  return (
+    <button
+      onClick={(ev) => {
+        ev.stopPropagation();
+        onSelect(e);
+      }}
+      title={e.title}
+      className={clsx(
+        `type-${e.type}`,
+        "relative flex w-full items-center gap-1 truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium",
+        isNew && "ring-2 ring-gold-500",
+      )}
+      style={{ background: "var(--type-bg)", color: "var(--type)" }}
+    >
+      {cls && <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: cls.color }} />}
+      <span className="truncate">
+        {showTime && e.time ? `${formatTime(e.time)} ` : ""}
+        {e.title}
+      </span>
+      {isVerified(e) && <CheckCircle2 className="ml-auto hidden h-3 w-3 shrink-0 text-emerald-600 sm:block" />}
+    </button>
   );
 }

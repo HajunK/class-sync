@@ -101,6 +101,42 @@ body {
   animation: fade-up 0.45s ease-out both;
 }
 
+/* Grows out of its transform-origin (set inline to the clicked point). */
+/* Scale and opacity run on separate curves: the fade finishes early so the
+   popup reads as solid while it settles, and the close is the same path in reverse. */
+@keyframes pop-scale-in {
+  from { transform: scale(0.6); }
+  to { transform: none; }
+}
+@keyframes pop-scale-out {
+  from { transform: none; }
+  to { transform: scale(0.6); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.animate-pop-in {
+  /* Fast start, gentle settle with a ~1% overshoot. */
+  animation:
+    pop-scale-in 0.16s cubic-bezier(0.2, 0.85, 0.3, 1.08) both,
+    fade-in 0.1s ease-out both;
+}
+.animate-pop-out {
+  /* Accelerates away, quicker than the open. */
+  animation:
+    pop-scale-out 0.12s cubic-bezier(0.5, 0, 0.75, 0) both,
+    fade-out 0.12s ease-in both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-pop-in { animation: fade-in 0.12s ease-out both; }
+  .animate-pop-out { animation: fade-out 0.12s ease-in both; }
+}
+
 @keyframes pulse-ring {
   0% { box-shadow: 0 0 0 0 rgb(252 196 56 / 0.6); }
   100% { box-shadow: 0 0 0 8px rgb(252 196 56 / 0); }
