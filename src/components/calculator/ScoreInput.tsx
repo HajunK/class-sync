@@ -14,6 +14,8 @@ interface Props {
   onMove: (dir: 1 | -1) => void;
   inputId: string;
   label: string;
+  /** Shown while the box is empty. */
+  placeholder?: string;
 }
 
 const fmt = (v: number | null | undefined) => (v == null ? "" : String(v));
@@ -33,7 +35,7 @@ export function GradeChip({ score, faded }: { score: number; faded?: boolean }) 
   );
 }
 
-export function ScoreInput({ value, replacedBy, onCommit, onMove, inputId, label }: Props) {
+export function ScoreInput({ value, replacedBy, onCommit, onMove, inputId, label, placeholder }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
   const replaced = replacedBy != null && editing === null;
 
@@ -57,6 +59,7 @@ export function ScoreInput({ value, replacedBy, onCommit, onMove, inputId, label
           aria-label={label}
           inputMode="decimal"
           autoComplete="off"
+          placeholder={placeholder}
           value={shown}
           onFocus={(e) => {
             // Editing a replaced row edits the original Formative.

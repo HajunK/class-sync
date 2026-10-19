@@ -3,11 +3,13 @@
 import { format } from "date-fns";
 import { BellRing, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { CalendarView } from "@/components/CalendarView";
 import { EventDetailModal } from "@/components/EventDetailModal";
 import { EventFormModal } from "@/components/EventFormModal";
+import { UpcomingChecklist } from "@/components/UpcomingChecklist";
 import { useWorkspace } from "@/components/workspace";
-import { isNewForMe, markClassSeen, useEvents } from "@/lib/db";
+import { isNewForMe, markClassSeen, setEventDone, useEvents } from "@/lib/db";
 import { fromKey, todayKey, tsToDate } from "@/lib/dates";
 import type { ClassEvent } from "@/lib/types";
 
@@ -29,6 +31,10 @@ export default function CalendarPage() {
     e.date >= today && !!memberships[e.classId] && isNewForMe(e, actor.uid, tsToDate(memberships[e.classId].lastSeenAt));
   const newEvents = events.filter(isNew);
   const newIds = new Set(allEvents.filter(isNew).map((e) => e.id));
+
+  // The Upcoming checklist: every entry from today on, across all my classes, minus what I've checked off.
+  const upcoming = allEvents.filter((e) => e.date >= today);
+  const doneIds = new Set(Object.values(memberships).flatMap((m) => m.doneEventIds ?? []));
 
   return (
     <div className="space-y-5">
@@ -73,16 +79,26 @@ export default function CalendarPage() {
         </div>
       )}
 
-      <CalendarView
-        events={events}
-        allEvents={allEvents}
-        classes={classes}
-        selectedId={selectedId}
-        classById={classById}
-        newIds={newIds}
-        onSelectEvent={(e) => setOpenId(e.id)}
-        onAddOnDate={(date, anchor, classId) => setForm({ open: true, date, anchor, classId })}
-      />
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <CalendarView
+          events={events}
+          allEvents={allEvents}
+          classes={classes}
+          selectedId={selectedId}
+          classById={classById}
+          newIds={newIds}
+          onSelectEvent={(e) => setOpenId(e.id)}
+          onAddOnDate={(date, anchor, classId) => setForm({ open: true, date, anchor, classId })}
+        />
+        <UpcomingChecklist
+          events={upcoming}
+          classById={classById}
+          doneIds={doneIds}
+          onToggle={(e, done) => setEventDone(actor.uid, e.classId, e.id, done).catch((err) => toast.error((err as Error).message))}
+          onOpen={(e) => setOpenId(e.id)}
+          onAdd={(anchor) => setForm({ open: true, anchor })}
+        />
+      </div>
 
       <EventDetailModal
         event={opened}

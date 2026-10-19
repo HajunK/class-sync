@@ -24,9 +24,14 @@ const KEY = "classsync:selected-class";
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const { user, profile } = useAuth();
   const actor = { uid: user!.uid, name: displayNameOf(user, profile) };
-  const { data: classes, loading } = useMyClasses(actor.uid);
-  const classIds = useMemo(() => classes.map((c) => c.id), [classes]);
+  const { data: rawClasses, loading } = useMyClasses(actor.uid);
+  const classIds = useMemo(() => rawClasses.map((c) => c.id), [rawClasses]);
   const memberships = useMyMemberships(classIds, actor.uid);
+  // Each student's own color choice wins over the class's color, everywhere a class is shown.
+  const classes = useMemo(
+    () => rawClasses.map((c) => (memberships[c.id]?.color ? { ...c, color: memberships[c.id].color! } : c)),
+    [rawClasses, memberships],
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Remember the selected class between visits (per browser).

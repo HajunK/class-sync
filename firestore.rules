@@ -7,6 +7,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // The site owner can read every class and entry (the Assessment tab). Sign-up doesn't
+    // verify emails, so this relies on Firebase allowing one account per email address.
+    function isAdmin() {
+      return signedIn() && request.auth.token.email.lower() == 'hajunk105@gmail.com';
+    }
+
     function classDoc(classId) {
       return get(/databases/$(database)/documents/classes/$(classId));
     }
@@ -31,6 +37,26 @@ service cloud.firestore {
       }
     }
 
+    // Lets the admin list every class's entries at once (a collection group query).
+    match /{path=**}/events/{eventId} {
+      allow read: if isAdmin();
+    }
+
+    // Announcements: anyone signed in can read and post one as themselves;
+    // only the author can remove it. They can't be edited.
+    match /announcements/{announcementId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 120
+        && request.resource.data.description is string
+        && request.resource.data.description.size() > 0 && request.resource.data.description.size() <= 1000
+        && request.resource.data.authorName is string
+        && request.resource.data.createdAt == request.time;
+      allow delete: if signedIn() && resource.data.authorId == request.auth.uid;
+    }
+
     // Join codes: anyone signed in can look up a code they were given,
     // but codes can't be listed.
     match /classCodes/{code} {
@@ -40,7 +66,7 @@ service cloud.firestore {
     }
 
     match /classes/{classId} {
-      allow read: if signedIn() && request.auth.uid in resource.data.memberIds;
+      allow read: if (signedIn() && request.auth.uid in resource.data.memberIds) || isAdmin();
 
       allow create: if signedIn()
         && request.resource.data.createdBy == request.auth.uid

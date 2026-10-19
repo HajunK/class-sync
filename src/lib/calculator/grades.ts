@@ -181,6 +181,39 @@ export function computeDomain(scores: CourseScores, hasFinal: boolean): DomainRe
   return { effectiveFormative, replacedRows, qualifyingRows, fa, sa, finalAvg, domain, rounded, grade, breakdown };
 }
 
+/**
+ * The lowest score (to one decimal) that, entered in this empty box, makes the
+ * course grade an A. 0 means any score keeps the A; null means even 100 isn't enough.
+ * Runs the real calculation, so replacement rules and re-normalized weights apply.
+ */
+export function scoreNeededForA(
+  scores: CourseScores,
+  hasFinal: boolean,
+  box: "formative" | "summative" | "final",
+  row: number,
+): number | null {
+  const aMin = GRADE_SCALE.find((g) => g.slug === "a")!.min;
+  const isA = (x: number) => {
+    const list = scores[box].slice();
+    while (list.length <= row) list.push(null);
+    list[row] = x;
+    const rounded = computeDomain({ ...scores, [box]: list }, hasFinal).rounded;
+    return rounded != null && rounded >= aMin;
+  };
+
+  if (isA(0)) return 0;
+  if (!isA(100)) return null;
+  // A higher score never lowers the grade, so binary search the tenths from 0.1 to 100.
+  let lo = 1;
+  let hi = 1000;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (isA(mid / 10)) hi = mid;
+    else lo = mid + 1;
+  }
+  return lo / 10;
+}
+
 /* ── GPA (§5) ───────────────────────────────────────────────── */
 
 export interface GpaRow {

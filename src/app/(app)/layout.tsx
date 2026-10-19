@@ -1,21 +1,29 @@
 "use client";
 
 import clsx from "clsx";
-import { Calculator, CalendarDays, FileText, LogOut, Plus } from "lucide-react";
+import { Calculator, CalendarClock, CalendarDays, ClipboardList, FileText, LogOut, Megaphone, Plus } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AddClassForm, AddClassModal } from "@/components/AddClassModal";
+import { AnnouncementDock } from "@/components/AnnouncementDock";
+import { ClassColorPopover } from "@/components/ClassColorPopover";
+import { ClassTimerPill } from "@/components/ClassTimerPill";
 import { CopyCode } from "@/components/CopyCode";
 import { Logo } from "@/components/Logo";
+import { ScheduleModal } from "@/components/ScheduleModal";
 import { Avatar, ClassDot, PageLoader } from "@/components/ui";
 import { useWorkspace, WorkspaceProvider } from "@/components/workspace";
+import { isAdminEmail } from "@/lib/admin";
 import { useAuth } from "@/lib/auth-context";
+import { formatSchedule } from "@/lib/schedule";
+import type { ClassRoom } from "@/lib/types";
 
 const NAV = [
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/notes", label: "Notes", icon: FileText },
   { href: "/calculator", label: "Calculator", icon: Calculator },
+  { href: "/announcements", label: "Announcements", icon: Megaphone },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -41,11 +49,21 @@ function Shell({ children, signingOutRef }: { children: React.ReactNode; signing
   const router = useRouter();
   const pathname = usePathname();
   const [adding, setAdding] = useState(false);
+  const [scheduling, setScheduling] = useState<ClassRoom | null>(null);
+  // Which class's color palette is open, and where. Kept while it animates closed.
+  const [palette, setPalette] = useState<{ classId: string; anchor: { x: number; y: number }; open: boolean } | null>(null);
+  // The palette closes on any outside mousedown, so remember if it was open when the chip was pressed.
+  const paletteWasOpen = useRef(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const isEditor = pathname.split("/").length > 3; // /notes/[classId]/[sessionId]
   // The calculator is personal: no class filter, and it works before joining any class.
   const isCalculator = pathname.startsWith("/calculator");
+  // Announcements are shared by everyone, so they also work before joining a class.
+  const isAnnouncements = pathname.startsWith("/announcements");
+  // The admin's Assessment tab covers every class, so it has no class filter either.
+  const isAssessment = pathname.startsWith("/assessment");
+  const nav = isAdminEmail(user?.email) ? [...NAV, { href: "/assessment", label: "Assessment", icon: ClipboardList }] : NAV;
 
   useEffect(() => {
     const close = (e: MouseEvent) => menuRef.current && !menuRef.current.contains(e.target as Node) && setMenuOpen(false);
@@ -61,7 +79,7 @@ function Shell({ children, signingOutRef }: { children: React.ReactNode; signing
             <Logo light />
           </Link>
           <nav className="ml-2 flex items-center gap-1">
-            {NAV.map(({ href, label, icon: Icon }) => {
+            {nav.map(({ href, label, icon: Icon }) => {
               const active = pathname.startsWith(href);
               return (
                 <Link
@@ -79,7 +97,8 @@ function Shell({ children, signingOutRef }: { children: React.ReactNode; signing
             })}
           </nav>
 
-          <div className="relative ml-auto" ref={menuRef}>
+          <div className="relative ml-auto flex items-center gap-2" ref={menuRef}>
+            <ClassTimerPill classes={classes} />
             <button onClick={() => setMenuOpen((o) => !o)} className="flex items-center gap-2.5 rounded-full py-1 pr-3 pl-1 hover:bg-white/10">
               <Avatar name={actor.name} size={32} className="!ring-gold-500" />
               <span className="hidden text-sm font-medium md:inline">{actor.name}</span>
@@ -107,19 +126,43 @@ function Shell({ children, signingOutRef }: { children: React.ReactNode; signing
       </header>
 
       {/* Class filter: pick one class, or see all of them together */}
-      {!isEditor && !isCalculator && classes.length > 0 && (
+      {!isEditor && !isCalculator && !isAnnouncements && !isAssessment && classes.length > 0 && (
         <div className="border-b border-line bg-white">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 py-3">
             <ClassChip active={!selectedId} onClick={() => select(null)} label="All classes" color="#fcc438" />
             {classes.map((c) => (
-              <ClassChip key={c.id} active={selectedId === c.id} onClick={() => select(c.id)} label={c.course} color={c.color} />
+              <ClassChip
+                key={c.id}
+                active={selectedId === c.id}
+                // Clicking the class that's already selected opens its color palette just below the chip.
+                onMouseDown={() => (paletteWasOpen.current = !!palette?.open)}
+                onClick={(e) => {
+                  if (selectedId !== c.id) return select(c.id);
+                  if (paletteWasOpen.current) return; // pressing the chip again closes the palette
+                  const r = e.currentTarget.getBoundingClientRect();
+                  setPalette({ classId: c.id, anchor: { x: r.left - 8, y: r.bottom }, open: true });
+                }}
+                label={c.course}
+                color={c.color}
+              />
             ))}
             <button onClick={() => setAdding(true)} className="flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-muted hover:text-navy-900">
               <Plus className="h-3.5 w-3.5" /> Add class
             </button>
             {selectedId && classById[selectedId] && (
-              <span className="ml-auto flex items-center gap-2 text-xs text-muted">
-                Class code <CopyCode code={classById[selectedId].code} />
+              <span className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+                {/* Only the person who created the class sets when it meets. */}
+                {classById[selectedId].createdBy === actor.uid ? (
+                  <button onClick={() => setScheduling(classById[selectedId])} className="flex items-center gap-1 font-semibold text-navy-900 hover:underline">
+                    <CalendarClock className="h-3.5 w-3.5" />
+                    {classById[selectedId].schedule ? formatSchedule(classById[selectedId].schedule!) : "Set class schedule"}
+                  </button>
+                ) : (
+                  classById[selectedId].schedule && <span>{formatSchedule(classById[selectedId].schedule!)}</span>
+                )}
+                <span className="flex items-center gap-2">
+                  Class code <CopyCode code={classById[selectedId].code} />
+                </span>
               </span>
             )}
           </div>
@@ -129,7 +172,7 @@ function Shell({ children, signingOutRef }: { children: React.ReactNode; signing
       <main className={clsx("mx-auto w-full flex-1", !isEditor && "max-w-6xl px-5 py-8")}>
         {classesLoading ? (
           <PageLoader />
-        ) : classes.length === 0 && !isCalculator ? (
+        ) : classes.length === 0 && !isCalculator && !isAnnouncements && !isAssessment ? (
           <div className="mx-auto max-w-md py-16">
             <h1 className="font-serif text-3xl font-semibold text-navy-900">Welcome to ClassSync</h1>
             <p className="mt-2 mb-6 text-muted">Join your class with the code a classmate shared, or create a new class.</p>
@@ -142,14 +185,35 @@ function Shell({ children, signingOutRef }: { children: React.ReactNode; signing
         )}
       </main>
       <AddClassModal open={adding} onClose={() => setAdding(false)} />
+      <ScheduleModal cls={scheduling} onClose={() => setScheduling(null)} />
+      <ClassColorPopover
+        cls={palette ? (classById[palette.classId] ?? null) : null}
+        anchor={palette?.anchor ?? null}
+        open={!!palette?.open}
+        onClose={() => setPalette((p) => p && { ...p, open: false })}
+      />
+      <AnnouncementDock />
     </div>
   );
 }
 
-function ClassChip({ active, onClick, label, color }: { active: boolean; onClick: () => void; label: string; color: string }) {
+function ClassChip({
+  active,
+  onClick,
+  onMouseDown,
+  label,
+  color,
+}: {
+  active: boolean;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onMouseDown?: () => void;
+  label: string;
+  color: string;
+}) {
   return (
     <button
       onClick={onClick}
+      onMouseDown={onMouseDown}
       className={clsx(
         "flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition",
         active ? "border-navy-900 bg-navy-900 text-white" : "border-line bg-white text-navy-900 hover:border-navy-900/30",

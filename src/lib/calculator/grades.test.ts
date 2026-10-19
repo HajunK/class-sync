@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildGpaRows, commitScore, computeDomain, computeGpa, letterGrade, pasteFromDomain, sanitizeTyping, truncate2, type GpaRow } from "./grades";
+import { buildGpaRows, commitScore, computeDomain, computeGpa, letterGrade, pasteFromDomain, sanitizeTyping, scoreNeededForA, truncate2, type GpaRow } from "./grades";
 
 describe("§9.1 commitScore", () => {
   const cases: [string, string][] = [
@@ -130,5 +130,49 @@ describe("buildGpaRows (§5.1)", () => {
   });
   it("a grade cleared on the GPA tab stays cleared", () => {
     assert.deepEqual(buildGpaRows(["Biology"], [{ name: "Biology", slug: null }], { Biology: "a" }), [{ name: "Biology", slug: null }]);
+  });
+});
+
+describe("scoreNeededForA", () => {
+  const sc = (formative: (number | null)[], summative: (number | null)[] = [], final: (number | null)[] = []) => ({
+    formative,
+    summative,
+    final,
+    unlinkedRows: [],
+  });
+
+  it("an empty course needs 92.5 (a rounded 93)", () => {
+    assert.equal(scoreNeededForA(sc([]), false, "formative", 0), 92.5);
+  });
+
+  it("averages into the formative box", () => {
+    // (90 + x) / 2 >= 92.5  →  x >= 95
+    assert.equal(scoreNeededForA(sc([90]), false, "formative", 1), 95);
+  });
+
+  it("uses the 25/75 weighting for a summative that can't replace anything", () => {
+    // 22.5 + 0.75x >= 92.5  →  x >= 93.33…, so the next tenth
+    assert.equal(scoreNeededForA(sc([90]), false, "summative", 1), 93.4);
+  });
+
+  it("a summative in a row with a lower formative replaces it", () => {
+    // Replaces the 90, so FA = SA = x
+    assert.equal(scoreNeededForA(sc([90]), false, "summative", 0), 92.5);
+  });
+
+  it("returns 0 when the A is safe whatever the score", () => {
+    const hundreds = Array<number>(10).fill(100);
+    assert.equal(scoreNeededForA(sc(hundreds, hundreds), false, "formative", 10), 0);
+  });
+
+  it("returns null when even 100 can't reach an A", () => {
+    assert.equal(scoreNeededForA(sc([50], [50]), false, "formative", 1), null);
+  });
+
+  it("uses the 20/60/20 weighting for the final exam box", () => {
+    // FA 90 and SA 90 give 90 so far; 18 + 54 + 0.2x >= 92.5  →  x >= 102.5, out of reach
+    assert.equal(scoreNeededForA(sc([90], [90]), true, "final", 0), null);
+    // FA 95 and SA 95 give 19 + 57 + 0.2x >= 92.5  →  x >= 82.5
+    assert.equal(scoreNeededForA(sc([95], [95]), true, "final", 0), 82.5);
   });
 });

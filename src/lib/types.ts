@@ -18,6 +18,13 @@ export interface UserProfile {
 }
 
 /** A class workspace: one school + course + section. Students join with `code`. */
+/** When a class meets: weekdays (0 = Sunday … 6 = Saturday) and a "HH:mm" 24-hour time range, in the student's local time. */
+export interface ClassSchedule {
+  days: number[];
+  start: string;
+  end: string;
+}
+
 export interface ClassRoom {
   id: string;
   school: string;
@@ -25,6 +32,8 @@ export interface ClassRoom {
   section: string;
   code: string;
   color: string;
+  /** Missing on classes created before schedules existed. */
+  schedule?: ClassSchedule;
   memberIds: string[];
   createdBy: string;
   createdAt?: Timestamp;
@@ -35,6 +44,10 @@ export interface Member {
   displayName: string;
   /** When the student last marked the class calendar as seen. */
   lastSeenAt?: Timestamp | null;
+  /** The color this student picked for the class. Only they see it; absent means the class's own color. */
+  color?: string;
+  /** Calendar entries this student has checked off in their Upcoming list. */
+  doneEventIds?: string[];
 }
 
 export interface ClassEvent {
@@ -126,4 +139,14 @@ export interface MergedNote {
   model?: string;
   mergedAt?: Timestamp;
   mergedByName?: string;
+}
+
+/** A message any signed-in user can post; everyone sees it at the bottom of every tab. */
+export interface Announcement {
+  id: string;
+  title: string;
+  description: string;
+  authorId: string;
+  authorName: string;
+  createdAt: Timestamp | null;
 }

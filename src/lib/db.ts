@@ -5,8 +5,12 @@ import {
   arrayRemove,
   arrayUnion,
   collection,
+  collectionGroup,
+  deleteDoc,
+  deleteField,
   doc,
   getDoc,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -18,9 +22,33 @@ import {
 } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import { db } from "./firebase";
-import type { ClassEvent, ClassRoom, EventHistory, MergedNote, Member, Note, Session } from "./types";
+import type { Announcement, ClassEvent, ClassRoom, ClassSchedule, EventHistory, MergedNote, Member, Note, Session } from "./types";
 
 export const CLASS_COLORS = ["#2357c6", "#0f8a6b", "#c2410c", "#7c3aed", "#be185d", "#b88a00"];
+
+/** The colors a student can pick for a class (includes every CLASS_COLORS entry). */
+export const CLASS_PALETTE = [
+  { name: "Red", hex: "#dc2626" },
+  { name: "Rose", hex: "#e11d48" },
+  { name: "Pink", hex: "#be185d" },
+  { name: "Fuchsia", hex: "#c026d3" },
+  { name: "Violet", hex: "#7c3aed" },
+  { name: "Indigo", hex: "#4f46e5" },
+  { name: "Blue", hex: "#2357c6" },
+  { name: "Sky", hex: "#0284c7" },
+  { name: "Cyan", hex: "#0891b2" },
+  { name: "Teal", hex: "#0d9488" },
+  { name: "Emerald", hex: "#0f8a6b" },
+  { name: "Green", hex: "#16a34a" },
+  { name: "Lime", hex: "#65a30d" },
+  { name: "Gold", hex: "#b88a00" },
+  { name: "Amber", hex: "#d97706" },
+  { name: "Orange", hex: "#c2410c" },
+  { name: "Brown", hex: "#92400e" },
+  { name: "Slate", hex: "#64748b" },
+  { name: "Charcoal", hex: "#374151" },
+  { name: "Hot pink", hex: "#ec4899" },
+];
 
 export interface Actor {
   uid: string;
@@ -34,7 +62,7 @@ function randomCode() {
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
-export async function createClass(actor: Actor, input: { school: string; course: string; section: string }) {
+export async function createClass(actor: Actor, input: { school: string; course: string; section: string; schedule: ClassSchedule }) {
   const code = randomCode();
   const classRef = doc(collection(db, "classes"));
   const batch = writeBatch(db);
@@ -42,6 +70,7 @@ export async function createClass(actor: Actor, input: { school: string; course:
     school: input.school.trim(),
     course: input.course.trim(),
     section: input.section.trim(),
+    schedule: input.schedule,
     code,
     color: CLASS_COLORS[Math.floor(Math.random() * CLASS_COLORS.length)],
     memberIds: [actor.uid],
@@ -52,6 +81,25 @@ export async function createClass(actor: Actor, input: { school: string; course:
   batch.set(doc(db, "classes", classRef.id, "members", actor.uid), { displayName: actor.name, lastSeenAt: serverTimestamp() });
   await batch.commit();
   return classRef.id;
+}
+
+/** Saves the student's own color for a class on their membership doc; null goes back to the class's color. */
+export async function setClassColor(uid: string, classId: string, color: string | null) {
+  if (color && !CLASS_PALETTE.some((c) => c.hex === color)) throw new Error("Pick one of the palette colors.");
+  await setDoc(doc(db, "classes", classId, "members", uid), { color: color ?? deleteField() }, { merge: true });
+}
+
+/** Checks an entry on or off in the student's own Upcoming list (saved on their membership doc). */
+export async function setEventDone(uid: string, classId: string, eventId: string, done: boolean) {
+  await setDoc(
+    doc(db, "classes", classId, "members", uid),
+    { doneEventIds: done ? arrayUnion(eventId) : arrayRemove(eventId) },
+    { merge: true },
+  );
+}
+
+export async function setClassSchedule(classId: string, schedule: ClassSchedule) {
+  await updateDoc(doc(db, "classes", classId), { schedule });
 }
 
 export async function joinClassByCode(actor: Actor, rawCode: string) {
@@ -297,5 +345,78 @@ export function useNotes(classId: string, sessionId: string) {
       () => setState({ data: [], loading: false }),
     );
   }, [classId, sessionId]);
+  return state;
+}
+
+/* ── Announcements ────────────────────────────────────────────── */
+
+export const ANNOUNCEMENT_LIMITS = { title: 120, description: 1000 };
+
+export async function addAnnouncement(actor: Actor, input: { title: string; description: string }) {
+  await addDoc(collection(db, "announcements"), {
+    title: input.title.trim(),
+    description: input.description.trim(),
+    authorId: actor.uid,
+    authorName: actor.name,
+    createdAt: serverTimestamp(),
+  });
+}
+
+export async function deleteAnnouncement(id: string) {
+  await deleteDoc(doc(db, "announcements", id));
+}
+
+/** The newest announcements, newest first, kept live. */
+export function useAnnouncements() {
+  const [state, setState] = useState<{ data: Announcement[]; loading: boolean }>({ data: [], loading: true });
+  useEffect(() => {
+    return onSnapshot(
+      query(collection(db, "announcements"), orderBy("createdAt", "desc"), limit(50)),
+      (snap) => setState({ data: snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Announcement), loading: false }),
+      () => setState({ data: [], loading: false }),
+    );
+  }, []);
+  return state;
+}
+
+/* ── Admin: everything, across all classes ────────────────────── */
+
+interface Listing<T> {
+  data: T[];
+  loading: boolean;
+  /** True when the rules refused the read (the account isn't the admin, or the rules aren't published yet). */
+  denied: boolean;
+}
+
+/** Every calendar entry in every class. Only the admin's rules allow this. */
+export function useAllEvents(enabled: boolean) {
+  const [state, setState] = useState<Listing<ClassEvent>>({ data: [], loading: true, denied: false });
+  useEffect(() => {
+    if (!enabled) return;
+    return onSnapshot(
+      collectionGroup(db, "events"),
+      (snap) =>
+        setState({
+          data: snap.docs.map((d) => ({ id: d.id, confirmations: [], ...d.data(), classId: d.ref.parent.parent!.id }) as unknown as ClassEvent),
+          loading: false,
+          denied: false,
+        }),
+      () => setState({ data: [], loading: false, denied: true }),
+    );
+  }, [enabled]);
+  return state;
+}
+
+/** Every class. Only the admin's rules allow this. */
+export function useAllClasses(enabled: boolean) {
+  const [state, setState] = useState<Listing<ClassRoom>>({ data: [], loading: true, denied: false });
+  useEffect(() => {
+    if (!enabled) return;
+    return onSnapshot(
+      collection(db, "classes"),
+      (snap) => setState({ data: snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ClassRoom), loading: false, denied: false }),
+      () => setState({ data: [], loading: false, denied: true }),
+    );
+  }, [enabled]);
   return state;
 }

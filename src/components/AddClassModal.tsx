@@ -5,6 +5,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { createClass, joinClassByCode } from "@/lib/db";
+import { validateSchedule } from "@/lib/schedule";
+import type { ClassSchedule } from "@/lib/types";
+import { ScheduleFields } from "./ScheduleFields";
 import { Field, Modal, Spinner } from "./ui";
 import { useWorkspace } from "./workspace";
 
@@ -15,13 +18,17 @@ export function AddClassForm({ onDone }: { onDone?: () => void }) {
   const [mode, setMode] = useState<"join" | "create">("join");
   const [code, setCode] = useState("");
   const [form, setForm] = useState({ school: profile?.school || "", course: "", section: "" });
+  const [schedule, setSchedule] = useState<ClassSchedule>({ days: [], start: "", end: "" });
+  const [triedSave, setTriedSave] = useState(false);
   const [busy, setBusy] = useState(false);
+  const scheduleErrors = validateSchedule(schedule);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (mode === "create" && scheduleErrors) return setTriedSave(true);
     setBusy(true);
     try {
-      const id = mode === "join" ? await joinClassByCode(actor, code) : await createClass(actor, form);
+      const id = mode === "join" ? await joinClassByCode(actor, code) : await createClass(actor, { ...form, schedule });
       toast.success(mode === "join" ? "You joined the class." : "Class created. Share the class code with your classmates.");
       select(id);
       onDone?.();
@@ -71,6 +78,7 @@ export function AddClassForm({ onDone }: { onDone?: () => void }) {
               <input className="input" required value={form.section} onChange={(e) => setForm({ ...form, section: e.target.value })} placeholder="Section A" />
             </Field>
           </div>
+          <ScheduleFields value={schedule} onChange={setSchedule} errors={triedSave ? scheduleErrors : null} />
         </>
       )}
 

@@ -3,10 +3,16 @@
 import clsx from "clsx";
 import { Link2, Unlink2, X } from "lucide-react";
 import { useMemo } from "react";
-import { computeDomain, truncate2, WEIGHTS, type CourseScores } from "@/lib/calculator/grades";
+import { computeDomain, scoreNeededForA, truncate2, WEIGHTS, type CourseScores } from "@/lib/calculator/grades";
 import { ScoreInput } from "./ScoreInput";
 
 const MIN_ROWS = 8;
+
+/** Placeholder text for an empty box: what it takes to get an A. No hint when even 100 isn't enough. */
+function aHint(needed: number | null) {
+  if (needed == null) return undefined;
+  return needed === 0 ? "Stays an A" : `${needed} for A`;
+}
 
 export const emptyScores = (): CourseScores => ({ formative: [], summative: [], final: [], unlinkedRows: [] });
 
@@ -48,6 +54,19 @@ export function DomainCard({
 }) {
   const r = useMemo(() => computeDomain(scores, hasFinal), [scores, hasFinal]);
   const rows = rowCount(scores);
+  // For each empty box, the score that would make the course an A.
+  const hints = useMemo(() => {
+    const row = (box: "formative" | "summative") => {
+      const all = Array.from({ length: rowCount(scores) }, (_, i) => (scores[box][i] == null ? aHint(scoreNeededForA(scores, hasFinal, box, i)) : undefined));
+      // Only the first of a run of identical hints is shown.
+      return all.map((h, i) => (i > 0 && h === all[i - 1] ? undefined : h));
+    };
+    return {
+      formative: row("formative"),
+      summative: row("summative"),
+      final: scores.final[0] == null && hasFinal ? aHint(scoreNeededForA(scores, hasFinal, "final", 0)) : undefined,
+    };
+  }, [scores, hasFinal]);
   const w = hasFinal ? WEIGHTS.withFinal : WEIGHTS.withoutFinal;
 
   function commit(box: "formative" | "summative", i: number, v: number | null) {
@@ -109,6 +128,7 @@ export function DomainCard({
                   inputId={`${id}-F-${i}`}
                   label={`${name} formative ${i + 1}`}
                   value={scores.formative[i] ?? null}
+                  placeholder={hints.formative[i]}
                   replacedBy={replaced ? scores.summative[i] : null}
                   onCommit={(v) => commit("formative", i, v)}
                   onMove={(d) => focus("F", i + d)}
@@ -129,6 +149,7 @@ export function DomainCard({
                   inputId={`${id}-S-${i}`}
                   label={`${name} summative ${i + 1}`}
                   value={scores.summative[i] ?? null}
+                  placeholder={hints.summative[i]}
                   onCommit={(v) => commit("summative", i, v)}
                   onMove={(d) => focus("S", i + d)}
                 />
@@ -144,6 +165,7 @@ export function DomainCard({
               inputId={`${id}-E-0`}
               label={`${name} final exam`}
               value={scores.final[0] ?? null}
+              placeholder={hints.final}
               onCommit={(v) => onChange({ ...scores, final: v == null ? [] : [v] })}
               onMove={() => {}}
             />

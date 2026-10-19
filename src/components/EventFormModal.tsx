@@ -95,9 +95,6 @@ function EventForm({ onClose, actor, classes, event, defaultDate, defaultClassId
       <Field label="Title">
         <input className="input" required maxLength={120} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Unit 3 quiz" />
       </Field>
-      <Field label="Time (optional)">
-        <input className="input" type="time" value={form.time} onChange={(e) => set("time", e.target.value)} />
-      </Field>
       <Field label="Details (optional)">
         <textarea
           className="input min-h-[80px]"
