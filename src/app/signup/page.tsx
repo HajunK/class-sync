@@ -39,7 +39,7 @@ export default function SignupPage() {
       subtitle={
         <>
           Already have an account?{" "}
-          <Link href="/login" className="font-semibold text-navy-900 underline decoration-gold-500 decoration-2 underline-offset-4">
+          <Link href="/login" className="font-semibold text-navy-900 underline decoration-navy-600 decoration-2 underline-offset-4">
             Sign in
           </Link>
         </>

@@ -76,7 +76,7 @@ export default function Home() {
           <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-5 py-20 lg:grid-cols-[1.05fr_1fr] lg:py-28">
             <div className="animate-fade-up">
               <p className="eyebrow !text-gold-500">One class · One calendar · One set of notes</p>
-              <h1 className="mt-5 font-serif text-5xl leading-[1.05] font-semibold tracking-tight sm:text-6xl">
+              <h1 className="mt-5 font-heading text-5xl leading-[1.05] font-extrabold tracking-tight sm:text-6xl">
                 Never miss the
                 <br />
                 quiz <em className="text-gold-500">everyone else</em>
@@ -110,7 +110,7 @@ export default function Home() {
           <div className="mx-auto grid max-w-6xl gap-10 px-5 py-20 md:grid-cols-[0.9fr_1.1fr]">
             <div>
               <p className="eyebrow">The problem</p>
-              <h2 className="mt-3 font-serif text-4xl leading-tight font-semibold text-navy-900">
+              <h2 className="mt-3 font-heading text-4xl leading-tight font-extrabold text-navy-900">
                 Thirty private copies of the same announcement — and it still goes missing.
               </h2>
             </div>
@@ -125,7 +125,7 @@ export default function Home() {
                 marks what will be on the test.{" "}
                 <strong className="font-semibold text-navy-900">No single set of notes is complete.</strong>
               </p>
-              <p className="border-l-4 border-gold-500 pl-4 font-serif text-xl text-navy-900 italic">
+              <p className="border-l-4 border-navy-600 pl-4 font-heading font-extrabold text-xl text-navy-900 italic">
                 ClassSync turns the work students already do into one shared, reliable record.
               </p>
             </div>
@@ -137,15 +137,15 @@ export default function Home() {
           <div className="mx-auto max-w-6xl px-5">
             <div className="max-w-2xl">
               <p className="eyebrow">Features</p>
-              <h2 className="mt-3 font-serif text-4xl font-semibold text-navy-900">Everything your class needs to stay in sync</h2>
+              <h2 className="mt-3 font-heading text-4xl font-extrabold text-navy-900">Everything your class needs to stay in sync</h2>
             </div>
             <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map(({ icon: Icon, title, body }) => (
                 <div key={title} className="card group p-7 transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)]">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-navy-900 text-gold-500 transition group-hover:bg-gold-500 group-hover:text-navy-900">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-navy-900 text-gold-500 transition group-hover:bg-navy-800">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <h3 className="mt-5 font-serif text-xl font-semibold text-navy-900">{title}</h3>
+                  <h3 className="mt-5 font-heading text-xl font-extrabold text-navy-900">{title}</h3>
                   <p className="mt-2 text-[15px] leading-relaxed text-muted">{body}</p>
                 </div>
               ))}
@@ -158,7 +158,7 @@ export default function Home() {
           <div className="mx-auto max-w-6xl px-5">
             <div className="text-center">
               <p className="eyebrow">How it works</p>
-              <h2 className="mt-3 font-serif text-4xl font-semibold text-navy-900">Three steps. Whole class covered.</h2>
+              <h2 className="mt-3 font-heading text-4xl font-extrabold text-navy-900">Three steps. Whole class covered.</h2>
             </div>
             <div className="mt-14 grid gap-8 md:grid-cols-3">
               {[
@@ -167,10 +167,10 @@ export default function Home() {
                 ["Share & merge notes", "Upload notes after each session. The AI merges them into one complete, source-linked note."],
               ].map(([t, b], i) => (
                 <div key={t} className="relative text-center">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border-2 border-gold-500 bg-white font-serif text-2xl font-bold text-navy-900">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border-2 border-navy-600 bg-white font-heading text-2xl font-extrabold text-navy-900">
                     {i + 1}
                   </div>
-                  <h3 className="mt-5 font-serif text-xl font-semibold text-navy-900">{t}</h3>
+                  <h3 className="mt-5 font-heading text-xl font-extrabold text-navy-900">{t}</h3>
                   <p className="mx-auto mt-2 max-w-xs text-[15px] leading-relaxed text-muted">{b}</p>
                 </div>
               ))}
@@ -184,7 +184,7 @@ export default function Home() {
             <NotesPreview />
             <div>
               <p className="eyebrow">AI note merging</p>
-              <h2 className="mt-3 font-serif text-4xl leading-tight font-semibold text-navy-900">
+              <h2 className="mt-3 font-heading text-4xl leading-tight font-extrabold text-navy-900">
                 Three partial notes in. One complete note out.
               </h2>
               <ul className="mt-7 space-y-4 text-[16px] text-muted">
@@ -211,13 +211,13 @@ export default function Home() {
         <section id="goals" className="scroll-mt-24 bg-navy-900 py-20 text-white">
           <div className="mx-auto max-w-6xl px-5">
             <p className="eyebrow !text-gold-500">Project objectives</p>
-            <h2 className="mt-3 max-w-2xl font-serif text-4xl font-semibold">
+            <h2 className="mt-3 max-w-2xl font-heading text-4xl font-extrabold">
               Not replacing note-taking — making sure no one loses what matters.
             </h2>
             <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-5">
               {GOALS.map(([t, b], i) => (
                 <div key={t} className="bg-navy-900 p-6">
-                  <span className="font-serif text-3xl font-bold text-gold-500">0{i + 1}</span>
+                  <span className="font-heading text-3xl font-extrabold text-gold-500">0{i + 1}</span>
                   <h3 className="mt-3 font-semibold">{t}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-white/60">{b}</p>
                 </div>
@@ -230,9 +230,9 @@ export default function Home() {
         <section className="py-20">
           <div className="mx-auto max-w-4xl px-5">
             <div className="card relative overflow-hidden px-8 py-14 text-center">
-              <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-navy-900 via-gold-500 to-navy-900" />
+              <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-navy-900 via-navy-600 to-navy-900" />
               <Crest className="mx-auto h-14 w-12" />
-              <h2 className="mt-5 font-serif text-4xl font-semibold text-navy-900">Bring your class together.</h2>
+              <h2 className="mt-5 font-heading text-4xl font-extrabold text-navy-900">Bring your class together.</h2>
               <p className="mx-auto mt-3 max-w-md text-muted">
                 Set up a workspace in under a minute and share the code at the start of your next class.
               </p>
@@ -249,10 +249,10 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="border-t-4 border-gold-500 bg-navy-950 text-white/60">
+      <footer className="border-t-4 border-navy-600 bg-navy-950 text-white/60">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm sm:flex-row">
           <span className="flex items-center gap-2">
-            <Crest className="h-7 w-6" /> <span className="font-serif text-base text-white">ClassSync</span>
+            <Crest className="h-7 w-6" /> <span className="font-heading font-bold text-base text-white">ClassSync</span>
           </span>
           <span>A shared class calendar and AI note-merging platform for students.</span>
         </div>
@@ -270,7 +270,7 @@ function HeroPreview() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs tracking-widest text-gold-500 uppercase">AP Biology · Sec A</p>
-            <p className="font-serif text-2xl font-semibold">October</p>
+            <p className="font-heading text-2xl font-extrabold">October</p>
           </div>
           <span className="rounded-full bg-gold-500 px-3 py-1 text-xs font-bold text-navy-900">3 new since you left</span>
         </div>
@@ -296,10 +296,10 @@ function HeroPreview() {
           <span className="chip type-quiz" style={{ color: "var(--type)", background: "var(--type-bg)" }}>Quiz</span>
           <span className="chip bg-emerald-50 text-emerald-700"><CheckCircle2 className="h-3 w-3" /> Verified</span>
         </div>
-        <p className="mt-2 font-serif text-lg leading-snug font-semibold text-navy-900">Cell Respiration Quiz</p>
+        <p className="mt-2 font-heading text-lg leading-snug font-bold text-navy-900">Cell Respiration Quiz</p>
         <p className="text-xs text-muted">Fri, Oct 9 · Ch. 7.1 – 7.3</p>
         <div className="mt-3 flex -space-x-2">
-          {["#071350", "#2357c6", "#0f8a6b", "#c2410c"].map((c) => (
+          {["#1f3fb5", "#2357c6", "#0f8a6b", "#c2410c"].map((c) => (
             <span key={c} className="h-6 w-6 rounded-full ring-2 ring-white" style={{ background: c }} />
           ))}
           <span className="pl-3 text-xs text-muted">4 confirmed</span>
@@ -338,7 +338,7 @@ function NotesPreview() {
       <div className="card overflow-hidden">
         <div className="bg-navy-900 px-5 py-3 text-white">
           <p className="text-[10px] tracking-widest text-gold-500 uppercase">Merged note · Oct 6</p>
-          <p className="font-serif text-lg font-semibold">Cellular Respiration — Glycolysis</p>
+          <p className="font-heading text-lg font-bold">Cellular Respiration — Glycolysis</p>
         </div>
         <div className="space-y-2.5 p-5 text-sm">
           <p className="flex items-start gap-2">

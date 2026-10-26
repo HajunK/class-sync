@@ -46,7 +46,7 @@ export default function LoginPage() {
       subtitle={
         <>
           New here?{" "}
-          <Link href="/signup" className="font-semibold text-navy-900 underline decoration-gold-500 decoration-2 underline-offset-4">
+          <Link href="/signup" className="font-semibold text-navy-900 underline decoration-navy-600 decoration-2 underline-offset-4">
             Create an account
           </Link>
         </>
@@ -73,7 +73,7 @@ export default function LoginPage() {
       </form>
 
       {usingEmulator && (
-        <div className="mt-8 rounded-2xl border border-gold-500/50 bg-gold-50 p-4">
+        <div className="mt-8 rounded-2xl border border-navy-600/40 bg-gold-50 p-4">
           <p className="text-xs font-semibold tracking-wide text-navy-900 uppercase">Local demo accounts</p>
           <p className="mt-1 text-xs text-muted">Seeded into the Firebase emulator. One click to sign in as a classmate.</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-3">

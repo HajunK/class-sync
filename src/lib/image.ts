@@ -10,7 +10,9 @@ export async function photoToDataUrl(file: File): Promise<string> {
   let bitmap: ImageBitmap;
   try {
     bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-  } catch {
+  } catch (cause) {
+    // The toast only says it failed; this records why (the file type and the browser's own error).
+    console.error("[photo-to-text] couldn't decode the photo:", { name: file.name, type: file.type || "(none)", size: file.size }, cause);
     throw new Error(`Couldn't open “${file.name}”. Please use a JPG or PNG photo.`);
   }
   const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));

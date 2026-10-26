@@ -11,22 +11,22 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
           <Logo light />
         </Link>
         <div className="relative mt-auto max-w-md">
-          <p className="font-serif text-4xl leading-tight font-semibold">
+          <p className="font-heading text-4xl leading-tight font-extrabold">
             &ldquo;I was out sick on Tuesday — and still knew about Friday&apos;s quiz <em className="text-gold-500">before</em> I got
             back.&rdquo;
           </p>
           <p className="mt-6 text-sm text-white/60">What ClassSync is built for.</p>
           <div className="mt-10 grid grid-cols-3 gap-4 border-t border-white/10 pt-8 text-sm">
             <div>
-              <p className="font-serif text-3xl font-bold text-gold-500">1</p>
+              <p className="font-heading text-3xl font-extrabold text-gold-500">1</p>
               <p className="text-white/60">shared calendar</p>
             </div>
             <div>
-              <p className="font-serif text-3xl font-bold text-gold-500">∞</p>
+              <p className="font-heading text-3xl font-extrabold text-gold-500">∞</p>
               <p className="text-white/60">classmates confirming</p>
             </div>
             <div>
-              <p className="font-serif text-3xl font-bold text-gold-500">0</p>
+              <p className="font-heading text-3xl font-extrabold text-gold-500">0</p>
               <p className="text-white/60">missed announcements</p>
             </div>
           </div>
@@ -37,7 +37,7 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
           <Link href="/" className="mb-10 inline-block lg:hidden">
             <Logo />
           </Link>
-          <h1 className="font-serif text-4xl font-semibold text-navy-900">{title}</h1>
+          <h1 className="font-heading text-4xl font-extrabold text-navy-900">{title}</h1>
           <p className="mt-2 text-muted">{subtitle}</p>
           <div className="mt-8">{children}</div>
         </div>

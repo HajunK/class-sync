@@ -3,14 +3,15 @@
 import { Megaphone, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useData } from "@/components/data";
 import { Avatar, EmptyState, Field, PageLoader, Spinner } from "@/components/ui";
 import { useWorkspace } from "@/components/workspace";
-import { addAnnouncement, ANNOUNCEMENT_LIMITS, deleteAnnouncement, useAnnouncements } from "@/lib/db";
+import { addAnnouncement, ANNOUNCEMENT_LIMITS, deleteAnnouncement } from "@/lib/db";
 import { timeAgo, tsToDate } from "@/lib/dates";
 
 export default function AnnouncementsPage() {
   const { actor } = useWorkspace();
-  const { data: announcements, loading } = useAnnouncements();
+  const { data: announcements, loading } = useData().announcements;
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
@@ -42,8 +43,8 @@ export default function AnnouncementsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="font-serif text-3xl font-semibold text-navy-900">Announcements</h1>
-        <p className="text-sm text-muted">Posted announcements stay at the bottom of every tab until their author deletes them.</p>
+        <h1 className="font-heading text-3xl font-extrabold text-navy-900">Announcements</h1>
+        <p className="text-sm text-muted">Posted announcements appear at the bottom of every tab until you clear them with the X or their author deletes them.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">

@@ -82,9 +82,15 @@ export function ScoreInput({ value, replacedBy, onCommit, onMove, inputId, label
             }
           }}
           className={clsx(
-            "h-8 w-full rounded-md border bg-white px-2 text-sm tabular-nums outline-none focus:border-navy-700 focus:ring-2 focus:ring-navy-900/10",
-            replaced ? "border-emerald-300 bg-emerald-50/50 font-semibold text-emerald-800" : "border-line",
+            // Just an underline; the animated line below is the focus indicator.
+            "peer h-8 w-full rounded-none border-0 border-b bg-transparent px-1 text-sm tabular-nums outline-none transition-colors",
+            replaced ? "border-emerald-400 font-semibold text-emerald-800" : "border-navy-900/20 hover:border-navy-900/45",
           )}
+        />
+        {/* Grows out from the center when the box is selected and back into the center when it isn't. */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-center scale-x-0 bg-navy-900 transition-transform duration-300 ease-out peer-focus:scale-x-100 motion-reduce:transition-none"
         />
         {replaced && value != null && (
           <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-[10px] text-muted" title="Original Formative score">

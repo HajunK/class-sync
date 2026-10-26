@@ -15,6 +15,10 @@ export interface UserProfile {
   displayName: string;
   email: string;
   school?: string;
+  /** The color theme this student picked (green, blue or purple). */
+  theme?: string;
+  /** Announcements this student cleared from the bottom of the screen (they stay on the Announcements tab). */
+  dismissedAnnouncementIds?: string[];
 }
 
 /** A class workspace: one school + course + section. Students join with `code`. */
@@ -134,6 +138,8 @@ export interface MergedNote {
   conflicts: MergedConflict[];
   keyTerms: { term: string; definition: string; sources: string[] }[];
   sourceNoteIds: string[];
+  /** Each student's share (percent, adds up to about 100) of the information in this note, as judged by the AI. Keyed by note id (= author uid). */
+  contributions?: Record<string, number>;
   /** openai = GPT, demo = offline fallback, sample = hand-written seed data */
   engine: "openai" | "demo" | "sample";
   model?: string;
