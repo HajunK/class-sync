@@ -4,7 +4,7 @@
 
 - 배포 주소: https://classsync-fawn.vercel.app
 - 프론트엔드: Next.js 16 (App Router) · React 19 · Tailwind CSS 4
-- 백엔드: Firebase Authentication + Cloud Firestore (`classsync-7c015`)
+- 백엔드: Firebase Authentication + Cloud Firestore (`class-sync-d8b62`)
 - 노트 편집기: Tiptap (Google Docs 스타일)
 - AI: OpenAI GPT API — 노트 합치기, 손글씨 사진 → 텍스트 변환
 - 배포: Vercel (팀 `logncoding` / 프로젝트 `classsync`)
@@ -99,7 +99,7 @@ OPENAI_MODEL=gpt-4o-mini
    cp .env.example .env.local
    ```
 2. `.env.local`에 값을 채웁니다.
-   - `NEXT_PUBLIC_FIREBASE_*` 6개: Firebase 콘솔 → 프로젝트 `classsync-7c015` → 프로젝트 설정(톱니바퀴) → **내 앱** → 웹 앱의 설정값. 콘솔 접근 권한이 없으면 프로젝트 담당자에게 받으세요. (브라우저에 공개되는 값이라 비밀은 아닙니다.)
+   - `NEXT_PUBLIC_FIREBASE_*` 6개: Firebase 콘솔 → 프로젝트 `class-sync-d8b62` → 프로젝트 설정(톱니바퀴) → **내 앱** → 웹 앱의 설정값. 콘솔 접근 권한이 없으면 프로젝트 담당자에게 받으세요. (브라우저에 공개되는 값이라 비밀은 아닙니다.)
    - `OPENAI_API_KEY`: 프로젝트 담당자에게 안전한 방법으로 전달받으세요.
 3. 실행합니다.
    ```bash
@@ -197,7 +197,7 @@ npx vercel deploy --prod --global-config ~/.vercel-teacher
 
 ## Firebase 설정
 
-- 프로젝트: `classsync-7c015` — Authentication(이메일/비밀번호), Firestore 사용
+- 프로젝트: `class-sync-d8b62` — Authentication(이메일/비밀번호), Firestore 사용
 - 승인된 도메인: `localhost`, `classsync-fawn.vercel.app`
 - **보안 규칙을 바꿀 때**는 `firestore.rules`를 수정한 뒤 Firebase 콘솔 → Firestore → 규칙에 붙여넣고 게시하거나, 권한 있는 계정으로 `firebase deploy --only firestore:rules`를 실행합니다.
 
