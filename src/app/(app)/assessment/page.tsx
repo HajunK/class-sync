@@ -4,11 +4,11 @@ import clsx from "clsx";
 import { addDays, addMonths, endOfMonth, endOfWeek, format, isSameMonth, startOfMonth, startOfWeek } from "date-fns";
 import { ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useData } from "@/components/data";
 import { EmptyState, PageLoader, TypeBadge } from "@/components/ui";
 import { isAdminEmail } from "@/lib/admin";
 import { useAuth } from "@/lib/auth-context";
 import { toKey, todayKey } from "@/lib/dates";
-import { useAllClasses, useAllEvents } from "@/lib/db";
 import type { ClassEvent } from "@/lib/types";
 
 const MAX_DOTS = 4;
@@ -17,8 +17,7 @@ const MAX_DOTS = 4;
 export default function AssessmentPage() {
   const { user } = useAuth();
   const admin = isAdminEmail(user?.email);
-  const events = useAllEvents(admin);
-  const classes = useAllClasses(admin);
+  const { adminEvents: events, adminClasses: classes } = useData();
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState(todayKey);
 
@@ -54,7 +53,7 @@ export default function AssessmentPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="font-serif text-3xl font-semibold text-navy-900">Assessment</h1>
+        <h1 className="font-heading text-3xl font-extrabold text-navy-900">Assessment</h1>
         <p className="text-sm text-muted">
           Every entry students added, across {classes.data.length} {classes.data.length === 1 ? "class" : "classes"}. Pick a day to see them all.
         </p>
@@ -66,7 +65,7 @@ export default function AssessmentPage() {
             <button className="btn btn-outline btn-sm !px-2" onClick={() => setCursor((c) => addMonths(c, -1))} aria-label="Previous month">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <h2 className="font-serif text-lg font-semibold text-navy-900">{format(cursor, "MMMM yyyy")}</h2>
+            <h2 className="font-heading text-lg font-bold text-navy-900">{format(cursor, "MMMM yyyy")}</h2>
             <button className="btn btn-outline btn-sm !px-2" onClick={() => setCursor((c) => addMonths(c, 1))} aria-label="Next month">
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -110,7 +109,7 @@ export default function AssessmentPage() {
 
         <section className="card p-5" aria-label="Entries for the selected day">
           <div className="mb-3 flex items-baseline justify-between gap-3">
-            <h2 className="font-serif text-2xl font-semibold text-navy-900">{format(selectedDate, "MMMM d, yyyy")}</h2>
+            <h2 className="font-heading text-2xl font-extrabold text-navy-900">{format(selectedDate, "MMMM d, yyyy")}</h2>
             <span className="text-sm text-muted">
               {list.length} {list.length === 1 ? "entry" : "entries"}
             </span>

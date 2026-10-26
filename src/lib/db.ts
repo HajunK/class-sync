@@ -362,6 +362,16 @@ export async function addAnnouncement(actor: Actor, input: { title: string; desc
   });
 }
 
+/** Saves the student's chosen color theme to their account, so it follows them to other devices. */
+export async function setUserTheme(uid: string, theme: string) {
+  await setDoc(doc(db, "users", uid), { theme }, { merge: true });
+}
+
+/** Clears an announcement from this student's own bottom-of-screen popups; it isn't deleted for anyone else. */
+export async function dismissAnnouncement(uid: string, id: string) {
+  await setDoc(doc(db, "users", uid), { dismissedAnnouncementIds: arrayUnion(id) }, { merge: true });
+}
+
 export async function deleteAnnouncement(id: string) {
   await deleteDoc(doc(db, "announcements", id));
 }

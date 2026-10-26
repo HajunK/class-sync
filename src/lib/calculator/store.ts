@@ -13,9 +13,11 @@ export interface CalculatorState {
   domainScores: Record<string, CourseScores>;
   /** Grades set by hand on the GPA tab. */
   gpaClasses: GpaRow[];
+  /** ClassSync classes already added here automatically, so one the student removes isn't added again. */
+  imported: string[];
 }
 
-const EMPTY: CalculatorState = { courses: [], domainScores: {}, gpaClasses: [] };
+const EMPTY: CalculatorState = { courses: [], domainScores: {}, gpaClasses: [], imported: [] };
 const SAVE_DELAY_MS = 800;
 
 /** Drop trailing empty rows so we don't store long runs of nulls. */
@@ -35,7 +37,7 @@ function forSaving(state: CalculatorState) {
       unlinkedRows: s.unlinkedRows,
     };
   }
-  return { courses: state.courses, domainScores, gpaClasses: state.gpaClasses, updatedAt: serverTimestamp() };
+  return { courses: state.courses, domainScores, gpaClasses: state.gpaClasses, imported: state.imported, updatedAt: serverTimestamp() };
 }
 
 /**
@@ -57,7 +59,7 @@ export function useCalculatorState(uid: string) {
         // Don't overwrite local edits that haven't been saved yet.
         if (timer.current) return;
         const data = snap.exists() ? (snap.data() as Partial<CalculatorState>) : {};
-        const next = { courses: data.courses ?? [], domainScores: data.domainScores ?? {}, gpaClasses: data.gpaClasses ?? [] };
+        const next = { courses: data.courses ?? [], domainScores: data.domainScores ?? {}, gpaClasses: data.gpaClasses ?? [], imported: data.imported ?? [] };
         latest.current = next;
         setState(next);
         setLoading(false);

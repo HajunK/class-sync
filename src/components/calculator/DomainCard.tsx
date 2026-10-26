@@ -43,6 +43,7 @@ export function DomainCard({
   onChange,
   onRemove,
   example,
+  message,
 }: {
   id: string;
   name: string;
@@ -51,6 +52,8 @@ export function DomainCard({
   onChange: (s: CourseScores) => void;
   onRemove?: () => void;
   example?: boolean;
+  /** A short encouraging line shown under the grade breakdown. */
+  message?: string;
 }) {
   const r = useMemo(() => computeDomain(scores, hasFinal), [scores, hasFinal]);
   const rows = rowCount(scores);
@@ -101,9 +104,10 @@ export function DomainCard({
                   : `Summative Average ${truncate2(r.sa!)}`
                 : `FA ${r.fa == null ? "-" : truncate2(r.fa)} | SA ${r.sa == null ? "-" : truncate2(r.sa)} | D ${truncate2(r.domain!)}`}
           </p>
+          {message && <p className="mt-1 animate-[fade-in_0.5s_ease-out_both] text-xs font-medium text-navy-700">{message}</p>}
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-serif text-3xl font-bold text-navy-900 tabular-nums">{r.rounded ?? "--"}</span>
+          <span className="font-heading text-3xl font-extrabold text-navy-900 tabular-nums">{r.rounded ?? "--"}</span>
           {r.grade && <span className="rounded-lg bg-navy-900 px-2 py-1 text-sm font-bold text-gold-500">{r.grade.label}</span>}
           {onRemove && (
             <button onClick={onRemove} className="ml-1 rounded p-1 text-muted hover:bg-paper hover:text-red-600" aria-label={`Remove ${name}`} title="Remove course">

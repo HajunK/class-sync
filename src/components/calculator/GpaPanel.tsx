@@ -20,7 +20,7 @@ export function GpaPanel({
   const result = computeGpa(rows);
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_420px]">
       <div className="card divide-y divide-line">
         <div className="flex items-center justify-between px-5 py-3">
           <p className="text-sm font-semibold text-navy-900">Courses</p>
@@ -28,7 +28,7 @@ export function GpaPanel({
             <ClipboardPaste className="h-3.5 w-3.5" /> Paste from Domain
           </button>
         </div>
-        {rows.length === 0 && <p className="px-5 py-8 text-center text-sm text-muted">Add your courses above to calculate your GPA.</p>}
+        {rows.length === 0 && <p className="px-5 py-8 text-center text-sm text-muted">Add your courses below to calculate your GPA.</p>}
         {rows.map((row, i) => {
           const course = findCourse(row.name);
           const credit = course ? course.weight : 1;
@@ -50,16 +50,13 @@ export function GpaPanel({
 
       <div className="card h-fit p-5 lg:sticky lg:top-[90px]">
         {result.hasAp ? (
-          <div className="grid grid-cols-2 gap-3 text-center">
+          <div className="grid grid-cols-2 gap-6 text-center">
             <Stat label="Unweighted" value={result.unweighted} />
             <Stat label="Weighted" value={result.weighted} />
           </div>
         ) : (
           <Stat label="Unweighted / Weighted" value={result.unweighted} />
         )}
-        <p className="mt-4 text-xs leading-relaxed text-muted">
-          A+/A = 4.0, A- = 3.667 … F = 0. AP courses add +1.0 to the weighted GPA. Courses with 0 credits (Lunch) aren&apos;t counted.
-        </p>
       </div>
     </div>
   );
@@ -69,7 +66,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="text-center">
       <p className="text-[11px] font-semibold tracking-wide text-muted uppercase">{label}</p>
-      <p className="mt-1 font-serif text-4xl font-bold text-navy-900 tabular-nums">{value}</p>
+      <p className="mt-1 font-heading text-4xl font-extrabold text-navy-900 tabular-nums">{value}</p>
     </div>
   );
 }
@@ -77,6 +74,8 @@ function Stat({ label, value }: { label: string; value: string }) {
 /** Click to pick, mouse wheel to step one grade at a time, × to clear (§5.3). */
 function GradePicker({ value, onChange }: { value: GradeSlug | null; onChange: (s: GradeSlug | null) => void }) {
   const [open, setOpen] = useState(false);
+  // Opens upward when there isn't room below it on screen.
+  const [up, setUp] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const wheel = useRef({ acc: 0, until: 0 });
@@ -118,7 +117,10 @@ function GradePicker({ value, onChange }: { value: GradeSlug | null; onChange: (
     <div className="relative flex items-center gap-1" ref={boxRef}>
       <button
         ref={btnRef}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          if (!open) setUp(window.innerHeight - (boxRef.current?.getBoundingClientRect().bottom ?? 0) < 230);
+          setOpen((o) => !o);
+        }}
         className={clsx(
           "h-8 w-14 rounded-md border text-sm font-bold transition",
           value ? "border-navy-900 bg-navy-900 text-gold-500" : "border-dashed border-line text-muted hover:border-navy-900/30",
@@ -135,7 +137,7 @@ function GradePicker({ value, onChange }: { value: GradeSlug | null; onChange: (
         <X className="h-3.5 w-3.5" />
       </button>
       {open && (
-        <div className="absolute top-9 right-6 z-20 grid w-48 grid-cols-3 gap-1 rounded-xl border border-line bg-white p-2 shadow-[var(--shadow-lift)]">
+        <div className={clsx("absolute right-6 z-20 grid w-48 grid-cols-3 gap-1 rounded-xl border border-line bg-white p-2 shadow-[var(--shadow-lift)]", up ? "bottom-9" : "top-9")}>
           {GRADE_SCALE.map((g) => (
             <button
               key={g.slug}

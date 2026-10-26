@@ -24,6 +24,8 @@ Disagreements ("conflicts"):
 - Different opinions, feelings, or extra details are NOT conflicts — just include them all.
 - For a real conflict, quote each version with its source and add a short neutral note on what to check. Don't silently pick one.
 
+Contributions: after the combined note is done, work out how much of ITS information came from each student's note. Use your inventory: for every note, count the distinct pieces of information it supplied that ended up in the combined note, weighting a rich detail more than a trivial one. Information that several students wrote is shared equally between them. A student whose note added nothing new still gets credit for what they wrote, even if others wrote it too. The percentages must add up to 100.
+
 Write in the same language the notes are written in. Every item MUST cite at least one source label (e.g. "N1").
 
 Respond with ONLY a JSON object of this exact shape (fill "inventory" first):
@@ -33,7 +35,8 @@ Respond with ONLY a JSON object of this exact shape (fill "inventory" first):
   "overview": string,            // 2-3 sentence summary of the lesson
   "sections": [ { "heading": string, "items": [ { "text": string, "kind": "point"|"example"|"definition"|"test", "sources": ["N1", ...] } ] } ],
   "conflicts": [ { "topic": string, "versions": [ { "source": "N1", "text": string } ], "note": string } ],
-  "keyTerms": [ { "term": string, "definition": string, "sources": ["N1", ...] } ]
+  "keyTerms": [ { "term": string, "definition": string, "sources": ["N1", ...] } ],
+  "contributions": [ { "source": "N1", "percent": number } ]   // one entry per note; adds up to 100
 }`;
 
 export async function mergeWithOpenAI(req: MergeRequest, apiKey: string, model: string): Promise<MergeResult> {

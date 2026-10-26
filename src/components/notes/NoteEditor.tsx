@@ -4,11 +4,16 @@ import { EditorContent, useEditor, useEditorState, type Editor, type JSONContent
 import { Placeholder } from "@tiptap/extensions";
 import StarterKit from "@tiptap/starter-kit";
 import clsx from "clsx";
-import { Bold, Camera, Heading1, Heading2, Italic, List, ListOrdered, Loader2, Quote, Redo2, Strikethrough, Underline, Undo2 } from "lucide-react";
+import { Bold, Camera, Heading1, Heading2, Italic, List, ListOrdered, Loader2, Mic, Quote, Redo2, Strikethrough, Underline, Undo2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { GrammarReview } from "./GrammarReview";
+import { useDictation } from "./useDictation";
 import { postWithAuth } from "@/lib/api";
+import { formatDuration, spokenText } from "@/lib/dictation";
 import { photoToDataUrl } from "@/lib/image";
+import { readPhotoText } from "@/lib/ocr";
+import { MIN_AVERAGE_CONFIDENCE } from "@/lib/ocr-text";
 
 /**
  * Plain-text version of the document for the AI merge: keeps headings and
@@ -95,6 +100,7 @@ export function NoteEditor({
     <div>
       {editable && editor && <Toolbar editor={editor} />}
       <EditorContent editor={editor} />
+      {editable && editor && <GrammarReview editor={editor} />}
     </div>
   );
 }
@@ -119,20 +125,55 @@ function Toolbar({ editor }: { editor: Editor }) {
   const c = () => editor.chain().focus();
   const fileRef = useRef<HTMLInputElement>(null);
   const [reading, setReading] = useState(0);
+  // What the photo reader is doing right now, shown on the button.
+  const [progress, setProgress] = useState("");
+  // Speech → text: record, then OpenAI's speech model writes it out and it's typed in at the cursor.
+  const dictation = useDictation((text) => {
+    const pos = editor.state.selection.from;
+    const before = editor.state.doc.textBetween(Math.max(0, pos - 1), pos, "");
+    editor.chain().focus().insertContent({ type: "text", text: spokenText(before, text) }).run();
+  });
+  const recording = dictation.state === "recording";
+  const transcribing = dictation.state === "transcribing";
 
-  // Photographed handwriting → text, inserted where the cursor is.
+  const insertText = (text: string) => editor.chain().focus().insertContent(textToHtml(text)).run();
+
+  // The slower, paid way: ChatGPT reads the photo. Better at handwriting and busy screenshots.
+  async function readWithAI(file: File) {
+    setReading((n) => n + 1);
+    setProgress("Asking ChatGPT…");
+    try {
+      const image = await photoToDataUrl(file);
+      const { text } = await postWithAuth<{ text: string }>("/api/transcribe-note", { image });
+      if (!text) return void toast.warning(`No notes found in “${file.name}”.`);
+      insertText(text);
+      toast.success("Photo converted to text. Check it and fix anything misread.");
+    } catch (err) {
+      console.error("[photo-to-text] ChatGPT read failed:", err);
+      toast.error((err as Error).message);
+    } finally {
+      setReading((n) => n - 1);
+    }
+  }
+
+  // A photo of notes → text, inserted where the cursor is. Read on your device (Tesseract), so it's free and nothing is uploaded.
   async function readPhotos(files: File[]) {
     for (const file of files) {
       setReading((n) => n + 1);
+      setProgress("Getting ready…");
       try {
-        const image = await photoToDataUrl(file);
-        const { text } = await postWithAuth<{ text: string }>("/api/transcribe-note", { image });
-        if (!text) toast.warning(`No notes found in “${file.name}”.`);
-        else {
-          editor.chain().focus().insertContent(textToHtml(text)).run();
-          toast.success("Photo converted to text. Check it and fix anything misread.");
+        const { text, confidence, words } = await readPhotoText(file, setProgress);
+        if (!text.trim() || !words || confidence < MIN_AVERAGE_CONFIDENCE) {
+          toast.warning(`Couldn't read “${file.name}” well. Handwriting and busy screenshots read better with ChatGPT.`, {
+            duration: 15000,
+            action: { label: "Read with ChatGPT", onClick: () => void readWithAI(file) },
+          });
+        } else {
+          insertText(text);
+          toast.success(`Photo converted to text (${Math.round(confidence)}% sure). Check it and fix anything misread.`);
         }
       } catch (err) {
+        console.error("[photo-to-text] failed:", err);
         toast.error((err as Error).message);
       } finally {
         setReading((n) => n - 1);
@@ -184,13 +225,28 @@ function Toolbar({ editor }: { editor: Editor }) {
       <button
         type="button"
         onMouseDown={(e) => e.preventDefault()}
+        onClick={dictation.toggle}
+        disabled={transcribing}
+        aria-pressed={recording}
+        title={recording ? "Recording. Click to stop and turn it into text" : "Dictate your notes with your voice"}
+        className={clsx(
+          "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition disabled:opacity-60",
+          recording ? "bg-red-50 text-red-700" : "text-ink/70 hover:bg-paper",
+        )}
+      >
+        {transcribing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className={clsx("h-4 w-4", recording && "animate-pulse")} />}
+        {recording ? `Recording ${formatDuration(dictation.seconds)}` : transcribing ? "Transcribing…" : "Speech to text"}
+      </button>
+      <button
+        type="button"
+        onMouseDown={(e) => e.preventDefault()}
         onClick={() => fileRef.current?.click()}
         disabled={reading > 0}
-        title="Add a photo of handwritten notes — it's converted to text"
+        title="Add a photo of notes — it's read on your device and converted to text"
         className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold text-ink/70 transition hover:bg-paper disabled:opacity-60"
       >
         {reading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-        {reading ? "Reading photo…" : "Photo to text"}
+        {reading ? progress || "Reading photo…" : "Photo to text"}
       </button>
       <input
         ref={fileRef}

@@ -1,34 +1,97 @@
 @import "tailwindcss";
 
 @theme {
-  --color-navy-950: #040b33;
-  --color-navy-900: #071350;
-  --color-navy-800: #0d1d6b;
-  --color-navy-700: #1a2c85;
-  --color-navy-600: #2f429c;
-  --color-navy-100: #e6e9f5;
-  --color-navy-50: #f3f5fb;
+  /* Royal blue is the default: deep and saturated, a touch of violet so it reads modern rather than navy.
+     (The "navy" names are the main color, kept so every component picks up whichever theme is active.) */
+  --color-navy-950: #0c1a52;
+  --color-navy-900: #1f3fb5;
+  --color-navy-800: #2c4fcc;
+  --color-navy-700: #4a6ce0;
+  --color-navy-600: #7b92ec;
+  --color-navy-100: #dde3fa;
+  --color-navy-50: #eef1fd;
 
-  --color-gold-600: #d9a21a;
-  --color-gold-500: #fcc438;
-  --color-gold-400: #fdd168;
-  --color-gold-100: #fff3d1;
-  --color-gold-50: #fffaeb;
+  /* The second color is white: gold-500 is the accent on main-color surfaces. On light surfaces the
+     accent roles (text, tints) fall back to the main color, since white wouldn't show. */
+  --color-gold-600: #1f3fb5;
+  --color-gold-500: #ffffff;
+  --color-gold-400: #e5e9fb;
+  --color-gold-100: #dde3fa;
+  --color-gold-50: #eef1fd;
 
-  --color-paper: #f7f8fc;
-  --color-ink: #0f172a;
-  --color-muted: #5b6475;
-  --color-line: #e3e6ef;
+  --color-paper: #f6f7fc;
+  --color-ink: #0e1530;
+  --color-muted: #586180;
+  --color-line: #e2e5f1;
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 
-  --shadow-card: 0 1px 2px rgb(7 19 80 / 0.04), 0 4px 16px rgb(7 19 80 / 0.06);
-  --shadow-lift: 0 2px 4px rgb(7 19 80 / 0.06), 0 12px 32px rgb(7 19 80 / 0.12);
+  --shadow-card: 0 1px 2px rgb(12 26 82 / 0.04), 0 4px 16px rgb(12 26 82 / 0.06);
+  --shadow-lift: 0 2px 4px rgb(12 26 82 / 0.06), 0 12px 32px rgb(12 26 82 / 0.12);
+}
+
+/* Color themes. Blue is the default (the @theme block above); the others swap the same variables.
+   The "navy" names are the main color, "gold" the second color (white) plus its light-surface stand-ins. */
+/* Jade green. */
+:root[data-theme="green"] {
+  --color-navy-950: #053b2b;
+  --color-navy-900: #0b6e4f;
+  --color-navy-800: #0f805d;
+  --color-navy-700: #1a9272;
+  --color-navy-600: #3aa688;
+  --color-navy-100: #d9eee5;
+  --color-navy-50: #eef7f3;
+  --color-gold-600: #0b6e4f;
+  --color-gold-400: #e3f1ea;
+  --color-gold-100: #d9eee5;
+  --color-gold-50: #eef7f3;
+  --color-paper: #f5f9f7;
+  --color-ink: #10201a;
+  --color-muted: #5a6a63;
+  --color-line: #e1e8e4;
+  --shadow-card: 0 1px 2px rgb(5 59 43 / 0.04), 0 4px 16px rgb(5 59 43 / 0.06);
+  --shadow-lift: 0 2px 4px rgb(5 59 43 / 0.06), 0 12px 32px rgb(5 59 43 / 0.12);
+}
+:root[data-theme="purple"] {
+  --color-navy-950: #3b1480;
+  --color-navy-900: #6d28d9;
+  --color-navy-800: #7d3ce6;
+  --color-navy-700: #9461ee;
+  --color-navy-600: #b08ef3;
+  --color-navy-100: #e9ddfc;
+  --color-navy-50: #f5f0fe;
+  --color-gold-600: #6d28d9;
+  --color-gold-400: #ece3fc;
+  --color-gold-100: #e9ddfc;
+  --color-gold-50: #f5f0fe;
+  --color-paper: #f8f6fd;
+  --color-ink: #1b1230;
+  --color-muted: #675c80;
+  --color-line: #e8e3f2;
+  --shadow-card: 0 1px 2px rgb(59 20 128 / 0.04), 0 4px 16px rgb(59 20 128 / 0.06);
+  --shadow-lift: 0 2px 4px rgb(59 20 128 / 0.06), 0 12px 32px rgb(59 20 128 / 0.12);
+}
+
+/* While the theme changes, colors fade instead of jumping. */
+html.theme-fade,
+html.theme-fade * {
+  transition:
+    background-color 0.35s ease,
+    color 0.35s ease,
+    border-color 0.35s ease,
+    fill 0.35s ease,
+    stroke 0.35s ease,
+    box-shadow 0.35s ease !important;
 }
 
 html {
   scroll-behavior: smooth;
+  /* No page scrollbar: when it appeared it nudged the whole layout sideways. Scrolling still works. */
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar {
+  display: none;
 }
 
 body {
@@ -38,6 +101,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Heavy headings read better a touch tighter. */
+.font-heading {
+  letter-spacing: -0.015em;
+}
+
 ::selection {
   background: var(--color-gold-400);
   color: var(--color-navy-900);
@@ -45,7 +113,7 @@ body {
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500 cursor-pointer whitespace-nowrap;
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-600 cursor-pointer whitespace-nowrap;
   }
   .btn-sm {
     @apply px-3.5 py-1.5 text-xs;
@@ -137,6 +205,44 @@ body {
   .animate-pop-out { animation: fade-out 0.12s ease-in both; }
 }
 
+/* A new month or week sliding in from the side the arrow points to. */
+@keyframes slide-next {
+  from { opacity: 0; transform: translateX(36px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes slide-prev {
+  from { opacity: 0; transform: translateX(-36px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-slide-next {
+  animation: slide-next 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.animate-slide-prev {
+  animation: slide-prev 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-next, .animate-slide-prev { animation: fade-in 0.12s ease-out both; }
+}
+
+/* A tab's content sliding in from the side the tab is on. No fill after the end, so nothing stays transformed. */
+@keyframes tab-next {
+  from { opacity: 0; transform: translateX(48px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes tab-prev {
+  from { opacity: 0; transform: translateX(-48px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-tab-next {
+  animation: tab-next 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+.animate-tab-prev {
+  animation: tab-prev 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-tab-next, .animate-tab-prev { animation: fade-in 0.12s ease-out backwards; }
+}
+
 @keyframes pulse-ring {
   0% { box-shadow: 0 0 0 0 rgb(252 196 56 / 0.6); }
   100% { box-shadow: 0 0 0 8px rgb(252 196 56 / 0); }
@@ -156,14 +262,14 @@ body {
   color: var(--color-ink);
 }
 .doc > * + * { margin-top: 0.6em; }
-.doc h1 { font-family: var(--font-serif); font-size: 1.6rem; font-weight: 600; color: var(--color-navy-900); margin-top: 1.2em; }
+.doc h1 { font-family: var(--font-heading); font-size: 1.6rem; font-weight: 800; color: var(--color-navy-900); margin-top: 1.2em; }
 .doc h2 { font-size: 1.15rem; font-weight: 700; color: var(--color-navy-900); margin-top: 1em; }
 .doc h1:first-child, .doc h2:first-child { margin-top: 0; }
 .doc ul { list-style: disc; padding-left: 1.4rem; }
 .doc ol { list-style: decimal; padding-left: 1.4rem; }
 .doc li > p { margin: 0; }
 .doc li + li { margin-top: 0.15em; }
-.doc blockquote { border-left: 3px solid var(--color-gold-500); padding-left: 0.9rem; color: var(--color-muted); }
+.doc blockquote { border-left: 3px solid var(--color-navy-600); padding-left: 0.9rem; color: var(--color-muted); }
 .doc code { background: var(--color-paper); border-radius: 4px; padding: 0 4px; font-size: 0.9em; }
 .doc a { color: #2357c6; text-decoration: underline; }
 .doc p.is-editor-empty:first-child::before {

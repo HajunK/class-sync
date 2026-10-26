@@ -6,22 +6,27 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ClassDot, EmptyState, Field, Modal, Spinner } from "@/components/ui";
+import { useData } from "@/components/data";
+import { NoteThumbnail } from "@/components/notes/NoteThumbnail";
+import { EmptyState, Field, Modal, Spinner } from "@/components/ui";
 import { useWorkspace } from "@/components/workspace";
-import { createSession, useSessions } from "@/lib/db";
+import { createSession } from "@/lib/db";
 import { fromKey, todayKey } from "@/lib/dates";
 
 export default function NotesPage() {
   const { actor, visible, classById, selectedId } = useWorkspace();
-  const classIds = useMemo(() => visible.map((c) => c.id), [visible]);
-  const sessions = useSessions(classIds);
+  const { sessions: allSessions } = useData();
+  const sessions = useMemo(() => {
+    const ids = new Set(visible.map((c) => c.id));
+    return allSessions.filter((s) => ids.has(s.classId));
+  }, [allSessions, visible]);
   const [open, setOpen] = useState(false);
 
   return (
     <div className="space-y-5">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="font-serif text-3xl font-semibold text-navy-900">Notes</h1>
+          <h1 className="font-heading text-3xl font-extrabold text-navy-900">Notes</h1>
           <p className="text-sm text-muted">
             {selectedId ? `${classById[selectedId].course} · ${classById[selectedId].section}` : "All your classes"} · one page per lesson
           </p>
@@ -38,33 +43,32 @@ export default function NotesPage() {
           body="Create a page for today's lesson. Classmates write their notes on the same page."
         />
       ) : (
-        <div className="card divide-y divide-line">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {sessions.map((s) => {
             const cls = classById[s.classId];
-            const mine = s.contributors.includes(actor.uid);
             return (
               <Link
                 key={s.id}
                 href={`/notes/${s.classId}/${s.id}`}
-                className="flex items-center gap-4 px-5 py-4 transition hover:bg-paper"
+                className="group block overflow-hidden rounded-2xl border border-line bg-white transition hover:border-navy-600/60 hover:shadow-[var(--shadow-card)]"
               >
-                <div className="w-12 shrink-0 text-center">
-                  <p className="text-[10px] font-semibold text-gold-600 uppercase">{format(fromKey(s.date), "MMM")}</p>
-                  <p className="font-serif text-2xl leading-none font-bold text-navy-900">{format(fromKey(s.date), "d")}</p>
+                <div className="relative">
+                  <NoteThumbnail classId={s.classId} sessionId={s.id} uid={actor.uid} wrote={s.contributors.includes(actor.uid)} merged={s.merged} />
+                  {s.merged && (
+                    <span className="chip absolute top-2.5 right-2.5 bg-navy-900 text-white">
+                      <Sparkles className="h-3 w-3" /> Class note
+                    </span>
+                  )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-navy-900">{s.topic}</p>
-                  <p className="flex items-center gap-1.5 text-xs text-muted">
-                    {cls && <ClassDot color={cls.color} className="!h-2 !w-2" />}
-                    {cls?.course} · {s.contributors.length} note{s.contributors.length === 1 ? "" : "s"}
-                    {!mine && " · you haven't written yet"}
+                <div className="px-4 py-3.5">
+                  <p className="truncate text-[15px] font-semibold text-navy-900">{s.topic}</p>
+                  <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: cls?.color ?? "#64748b" }} aria-hidden />
+                    <span className="truncate">
+                      {cls?.course} · {format(fromKey(s.date), "MMM d")} · {s.contributors.length} note{s.contributors.length === 1 ? "" : "s"}
+                    </span>
                   </p>
                 </div>
-                {s.merged && (
-                  <span className="chip bg-navy-900 text-gold-500">
-                    <Sparkles className="h-3 w-3" /> Class note
-                  </span>
-                )}
               </Link>
             );
           })}

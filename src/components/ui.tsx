@@ -57,7 +57,7 @@ export function Modal({
       >
         <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-line bg-white/95 px-6 py-5 backdrop-blur">
           <div>
-            <h2 className="font-serif text-xl font-semibold text-navy-900">{title}</h2>
+            <h2 className="font-heading text-xl font-extrabold text-navy-900">{title}</h2>
             {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
           </div>
           <button onClick={onClose} className="rounded-full p-1.5 text-muted hover:bg-navy-50 hover:text-navy-900" aria-label="Close">
@@ -156,7 +156,7 @@ export function Popover({
       }
     >
       <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
-        <h2 className="font-serif text-base font-semibold text-navy-900">{title}</h2>
+        <h2 className="font-heading text-base font-bold text-navy-900">{title}</h2>
         <button onClick={onClose} className="rounded-full p-1 text-muted hover:bg-navy-50 hover:text-navy-900" aria-label="Close">
           <X className="h-4 w-4" />
         </button>
@@ -180,7 +180,7 @@ export function EmptyState({
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line bg-white/60 px-6 py-12 text-center">
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-navy-50 text-navy-900">{icon}</div>
-      <h3 className="font-serif text-lg font-semibold text-navy-900">{title}</h3>
+      <h3 className="font-heading text-lg font-bold text-navy-900">{title}</h3>
       {body && <p className="mt-1 max-w-sm text-sm text-muted">{body}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
@@ -195,7 +195,7 @@ export function TypeBadge({ type }: { type: EventType }) {
   );
 }
 
-const AVATAR_COLORS = ["#071350", "#2357c6", "#0f8a6b", "#c2410c", "#7c3aed", "#be185d", "#b88a00", "#0e7490"];
+const AVATAR_COLORS = ["#1f3fb5", "#2357c6", "#0f8a6b", "#c2410c", "#7c3aed", "#be185d", "#b88a00", "#0e7490"];
 
 export function Avatar({ name, size = 28, className }: { name: string; size?: number; className?: string }) {
   const initials = name

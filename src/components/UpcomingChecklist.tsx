@@ -30,15 +30,16 @@ export function UpcomingChecklist({
   const done = events.filter((e) => doneIds.has(e.id));
 
   return (
-    <aside className="card h-fit p-5 lg:sticky lg:top-[90px] lg:max-h-[calc(100vh-110px)] lg:overflow-y-auto" aria-label="Upcoming">
+    // Stays in view while the calendar scrolls; scrolls on its own when the list is long.
+    <div className="p-6 lg:sticky lg:top-16 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto" role="region" aria-label="Upcoming">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="font-serif text-2xl font-semibold text-navy-900">Upcoming</h2>
+        <h2 className="font-heading text-2xl font-extrabold text-navy-900">Upcoming</h2>
         <button
           onClick={(e) => {
             const r = e.currentTarget.getBoundingClientRect();
             onAdd({ x: r.left + r.width / 2, y: r.bottom });
           }}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-muted transition hover:bg-paper hover:text-navy-900"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white text-muted transition hover:text-navy-900"
           aria-label="Add entry"
           title="Add entry"
         >
@@ -54,7 +55,7 @@ export function UpcomingChecklist({
       </ul>
 
       {done.length > 0 && (
-        <div className="mt-4 border-t border-line pt-4">
+        <div className="mt-4 border-t border-navy-900/10 pt-4">
           <button
             onClick={() => setShowDone((s) => !s)}
             className="flex items-center gap-2 text-sm font-semibold text-muted hover:text-navy-900"
@@ -72,7 +73,7 @@ export function UpcomingChecklist({
           )}
         </div>
       )}
-    </aside>
+    </div>
   );
 }
 
@@ -112,7 +113,7 @@ function Row({
       >
         {label}
       </button>
-      <span className={clsx("shrink-0 rounded-full border border-line px-2.5 py-0.5 text-xs whitespace-nowrap", done ? "text-muted/70" : "text-muted")}>
+      <span className={clsx("shrink-0 rounded-full border border-line bg-white px-2.5 py-0.5 text-xs whitespace-nowrap", done ? "text-muted/70" : "text-muted")}>
         {format(fromKey(e.date), "EEE, MMM d")}
       </span>
     </li>

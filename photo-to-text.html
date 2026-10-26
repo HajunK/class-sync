@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Photo to Text</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<input type="file" id="photo" accept="image/*">
+<select id="lang">
+  <option value="kor+eng">Korean + English</option>
+  <option value="eng">English</option>
+  <option value="kor">Korean</option>
+</select>
+<p id="status"></p>
+<canvas id="preview" style="max-width:400px"></canvas>
+<pre id="out" style="white-space:pre-wrap"></pre>
+
+<script>
+const canvas = document.getElementById("preview");
+const ctx = canvas.getContext("2d");
+
+// 1. Load the photo and clean it up (grayscale + contrast)
+function preprocess(file) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, 2000 / Math.max(img.width, img.height));
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const d = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < d.data.length; i += 4) {
+        const g = 0.299 * d.data[i] + 0.587 * d.data[i + 1] + 0.114 * d.data[i + 2];
+        const c = Math.max(0, Math.min(255, (g - 128) * 1.4 + 128)); // contrast
+        d.data[i] = d.data[i + 1] = d.data[i + 2] = c;
+      }
+      ctx.putImageData(d, 0, 0);
+      resolve(canvas);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// 2. Run OCR and mark low-confidence words
+document.getElementById("photo").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const lang = document.getElementById("lang").value;
+  const status = document.getElementById("status");
+
+  const cleaned = await preprocess(file);
+  const { data } = await Tesseract.recognize(cleaned, lang, {
+    logger: m => status.textContent = `${m.status} ${Math.round(m.progress * 100)}%`
+  });
+
+  const THRESHOLD = 60; // tune this in your experiment
+  const text = data.lines.map(line =>
+    line.words.map(w => w.confidence < THRESHOLD ? "[illegible]" : w.text).join(" ")
+  ).join("\n");
+
+  const avg = data.words.reduce((s, w) => s + w.confidence, 0) / data.words.length;
+  status.textContent = `Done. Average confidence: ${avg.toFixed(0)}%`;
+  document.getElementById("out").textContent = text;
+});
+</script>

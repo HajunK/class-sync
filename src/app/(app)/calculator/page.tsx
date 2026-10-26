@@ -2,22 +2,26 @@
 
 import clsx from "clsx";
 import { Plus, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { DomainCard, emptyScores } from "@/components/calculator/DomainCard";
 import { GpaPanel } from "@/components/calculator/GpaPanel";
+import { useData } from "@/components/data";
 import { PageLoader } from "@/components/ui";
 import { useWorkspace } from "@/components/workspace";
 import { COURSE_CATALOG, expandCourseNames, findCourse } from "@/lib/calculator/catalog";
+import { catalogMatches, classesToImport } from "@/lib/calculator/classCourses";
+import { useEncouragement } from "@/lib/calculator/encouragement";
 import { buildGpaRows, computeDomain, pasteFromDomain, type CourseScores, type GradeSlug } from "@/lib/calculator/grades";
-import { useCalculatorState } from "@/lib/calculator/store";
 
 export default function CalculatorPage() {
-  const { actor, classes } = useWorkspace();
-  const { state, loading, saving, update } = useCalculatorState(actor.uid);
+  const { classes } = useWorkspace();
+  const { state, loading, saving, update } = useData().calculator;
   const [tab, setTab] = useState<"domain" | "gpa">("domain");
 
   const cards = useMemo(() => expandCourseNames(state.courses), [state.courses]);
+  // A short encouraging line from ChatGPT under each course's grade breakdown, new on every refresh.
+  const encouragement = useEncouragement(cards);
 
   // Each course's current Domain grade (from the calculation itself, not the screen — §11 #4).
   const domainGrades = useMemo(() => {
@@ -30,6 +34,20 @@ export default function CalculatorPage() {
   }, [cards, state.domainScores]);
 
   const gpaRows = useMemo(() => buildGpaRows(state.courses, state.gpaClasses, domainGrades), [state.courses, state.gpaClasses, domainGrades]);
+
+  // Classes you're already in on ClassSync are added here, once each. One you remove stays removed.
+  const classNames = useMemo(() => classes.map((c) => c.course), [classes]);
+  useEffect(() => {
+    if (loading) return;
+    const add = classesToImport(classNames, state.courses, state.imported);
+    if (!add.length) return;
+    update((st) => {
+      // Re-checked against the latest state, in case this effect runs twice.
+      const fresh = add.filter((n) => !st.courses.includes(n) && !st.imported.includes(n));
+      return fresh.length ? { ...st, courses: [...st.courses, ...fresh], imported: [...st.imported, ...fresh] } : st;
+    });
+    toast(`Added your ClassSync ${add.length === 1 ? "class" : "classes"}: ${add.join(", ")}.`, { id: "calculator-import" });
+  }, [loading, classNames, state.courses, state.imported, update]);
 
   if (loading) return <PageLoader />;
 
@@ -44,7 +62,7 @@ export default function CalculatorPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-serif text-3xl font-semibold text-navy-900">Grade Calculator</h1>
+          <h1 className="font-heading text-3xl font-extrabold text-navy-900">Grade Calculator</h1>
           <p className="text-sm text-muted">
             Only you can see your grades.
             <span className="ml-2 text-xs">{saving === "pending" ? "Saving…" : saving === "error" ? "Couldn't save — check your connection" : "All changes saved"}</span>
@@ -59,13 +77,6 @@ export default function CalculatorPage() {
         </div>
       </div>
 
-      <CourseBar
-        courses={state.courses}
-        suggestions={classes.map((c) => c.course)}
-        onAdd={addCourse}
-        onRemove={removeCourse}
-      />
-
       {tab === "domain" ? (
         cards.length === 0 ? (
           <ExampleCards />
@@ -79,6 +90,7 @@ export default function CalculatorPage() {
                 hasFinal={findCourse(name)?.final ?? false}
                 scores={state.domainScores[name] ?? emptyScores()}
                 onChange={(s) => setScores(name, s)}
+                message={encouragement(name)}
               />
             ))}
           </div>
@@ -99,79 +111,71 @@ export default function CalculatorPage() {
           }}
         />
       )}
+
+      <div className="flex flex-wrap items-stretch gap-3">
+        <AddCourse courses={state.courses} suggestions={classNames} onAdd={addCourse} />
+        <MyCourses courses={state.courses} onRemove={removeCourse} />
+      </div>
     </div>
   );
 }
 
-/** My courses: picked from the school catalog so AP status and credits are right. */
-function CourseBar({
-  courses,
-  suggestions,
-  onAdd,
-  onRemove,
-}: {
-  courses: string[];
-  suggestions: string[];
-  onAdd: (name: string) => void;
-  onRemove: (name: string) => void;
-}) {
+/** The courses you've added, each with an ✕ to remove it. Compact, so it can sit beside the add form. */
+function MyCourses({ courses, onRemove }: { courses: string[]; onRemove: (name: string) => void }) {
+  return (
+    <div className="card flex min-w-[16rem] flex-1 flex-wrap items-center gap-1.5 px-3 py-1">
+      <span className="text-[11px] font-semibold tracking-wide text-muted uppercase">My courses</span>
+      {courses.length === 0 && <span className="text-xs text-muted">None yet. Add one on the left.</span>}
+      {courses.map((name) => (
+        <span key={name} className="flex items-center gap-0.5 rounded-full border border-line bg-paper py-0.5 pr-1 pl-2.5 text-[11px] leading-4 font-semibold text-navy-900">
+          {name}
+          <button onClick={() => onRemove(name)} className="rounded-full p-0.5 text-muted hover:bg-white hover:text-red-600" aria-label={`Remove ${name}`}>
+            <X className="h-2.5 w-2.5" />
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Add a course: picked from the school catalog so AP status and credits are right. Sits below the course cards. */
+function AddCourse({ courses, suggestions, onAdd }: { courses: string[]; suggestions: string[]; onAdd: (name: string) => void }) {
   const [pick, setPick] = useState("");
   const available = COURSE_CATALOG.filter((c) => !courses.includes(c.name));
-  // ClassSync classes whose name matches a catalog course.
-  const fromClasses = Array.from(
-    new Set(
-      suggestions
-        .map((s) => COURSE_CATALOG.find((c) => c.name.toLowerCase() === s.trim().toLowerCase())?.name)
-        .filter((n): n is string => !!n && !courses.includes(n)),
-    ),
-  );
+  // ClassSync classes that match a catalog course but aren't in the calculator (for example, ones you removed).
+  const fromClasses = catalogMatches(suggestions).filter((n) => !courses.includes(n));
 
   return (
-    <div className="card space-y-3 px-5 py-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold tracking-wide text-muted uppercase">My courses</span>
-        {courses.length === 0 && <span className="text-sm text-muted">None yet — add your courses to start.</span>}
-        {courses.map((name) => (
-          <span key={name} className="flex items-center gap-1 rounded-full border border-line bg-paper py-1 pr-1.5 pl-3 text-xs font-semibold text-navy-900">
-            {name}
-            {findCourse(name)?.ap && <span className="text-gold-600">AP</span>}
-            <button onClick={() => onRemove(name)} className="rounded-full p-0.5 text-muted hover:bg-white hover:text-red-600" aria-label={`Remove ${name}`}>
-              <X className="h-3 w-3" />
-            </button>
-          </span>
+    <form
+      className="card flex shrink-0 flex-wrap items-center gap-1.5 px-3 py-1"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (pick) onAdd(pick);
+        setPick("");
+      }}
+    >
+      <select className="input !h-7 !w-auto !px-2 !py-0 !text-xs" value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Course to add">
+        <option value="">Choose a course…</option>
+        {available.map((c) => (
+          <option key={c.name} value={c.name}>
+            {c.name}
+          </option>
         ))}
-      </div>
-      <form
-        className="flex flex-wrap items-center gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (pick) onAdd(pick);
-          setPick("");
-        }}
-      >
-        <select className="input !h-9 !w-auto !py-1.5" value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Course to add">
-          <option value="">Choose a course…</option>
-          {available.map((c) => (
-            <option key={c.name} value={c.name}>
-              {c.name}
-            </option>
+      </select>
+      <button className="btn btn-primary btn-sm !px-3 !py-1">
+        <Plus className="h-3 w-3" /> Add course
+      </button>
+      {fromClasses.length > 0 && (
+        <span className="flex flex-wrap items-center gap-1 text-[11px] text-muted">
+          From your classes:
+          {fromClasses.map((n) => (
+            <button key={n} type="button" onClick={() => onAdd(n)} className="rounded-full border border-dashed border-navy-900/30 px-2 py-0.5 font-semibold text-navy-900 hover:bg-navy-50">
+              + {n}
+            </button>
           ))}
-        </select>
-        <button className="btn btn-primary btn-sm" disabled={!pick}>
-          <Plus className="h-3.5 w-3.5" /> Add
-        </button>
-        {fromClasses.length > 0 && (
-          <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
-            From your classes:
-            {fromClasses.map((n) => (
-              <button key={n} type="button" onClick={() => onAdd(n)} className="rounded-full border border-dashed border-navy-900/30 px-2.5 py-1 font-semibold text-navy-900 hover:bg-navy-50">
-                + {n}
-              </button>
-            ))}
-          </span>
-        )}
-      </form>
-    </div>
+        </span>
+      )}
+    </form>
   );
 }
 
@@ -179,12 +183,14 @@ function CourseBar({
 function ExampleCards() {
   const [withFinal, setWithFinal] = useState(emptyScores());
   const [withoutFinal, setWithoutFinal] = useState(emptyScores());
+  // The examples get a message too. It shows up when it's ready; the cards don't wait for it.
+  const encouragement = useEncouragement(["Course with Finals", "Course without Finals"]);
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted">Try it out — these example cards aren&apos;t saved. Add your courses above to keep your grades.</p>
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-        <DomainCard id="ex-final" name="Course with Finals" hasFinal scores={withFinal} onChange={setWithFinal} example />
-        <DomainCard id="ex-nofinal" name="Course without Finals" hasFinal={false} scores={withoutFinal} onChange={setWithoutFinal} example />
+        <DomainCard id="ex-final" name="Course with Finals" hasFinal scores={withFinal} onChange={setWithFinal} example message={encouragement("Course with Finals")} />
+        <DomainCard id="ex-nofinal" name="Course without Finals" hasFinal={false} scores={withoutFinal} onChange={setWithoutFinal} example message={encouragement("Course without Finals")} />
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { addDays, addMonths, addWeeks, endOfMonth, endOfWeek, format, isSameMonth, startOfMonth, startOfWeek } from "date-fns";
+import { addDays, addMonths, addWeeks, endOfMonth, endOfWeek, format, isSameMonth, isSameWeek, startOfMonth, startOfWeek } from "date-fns";
 import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { isVerified } from "@/lib/db";
@@ -30,6 +30,8 @@ type View = "month" | "timeline";
 export function CalendarView({ events, allEvents, classes, selectedId, classById, newIds, onSelectEvent, onAddOnDate }: Props) {
   const [view, setView] = useState<View>("month");
   const [cursor, setCursor] = useState(() => new Date());
+  // Set by the arrows and Today: which way the new month or week slides in from. n restarts the animation.
+  const [nav, setNav] = useState<{ n: number; dir: 1 | -1 } | null>(null);
 
   const byDay = useMemo(() => {
     const map: Record<string, ClassEvent[]> = {};
@@ -52,20 +54,36 @@ export function CalendarView({ events, allEvents, classes, selectedId, classById
     return out;
   }, [cursor, view]);
 
-  const move = (dir: number) => setCursor((c) => (view === "month" ? addMonths(c, dir) : addWeeks(c, dir)));
+  const slide = (dir: 1 | -1) => setNav((p) => ({ n: (p?.n ?? 0) + 1, dir }));
+  const move = (dir: 1 | -1) => {
+    setCursor((c) => (view === "month" ? addMonths(c, dir) : addWeeks(c, dir)));
+    slide(dir);
+  };
+  const goToday = () => {
+    const now = new Date();
+    if (view === "month" ? isSameMonth(now, cursor) : isSameWeek(now, cursor)) return;
+    setCursor(now);
+    slide(now > cursor ? 1 : -1);
+  };
+  // Remounting the body (new key) replays its slide; switching views shouldn't slide.
+  const bodyKey = nav?.n ?? 0;
+  const bodySlide = nav && (nav.dir > 0 ? "animate-slide-next" : "animate-slide-prev");
   const today = todayKey();
 
   return (
-    <div className="card overflow-hidden">
-      <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
-        <h2 className="mr-auto font-serif text-xl font-semibold text-navy-900">
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-wrap items-center gap-2 border-b border-line px-6 py-3">
+        <h2 className="mr-auto font-heading text-xl font-extrabold text-navy-900">
           {view === "month" ? format(cursor, "MMMM yyyy") : `Week of ${format(days[0], "MMM d")}`}
         </h2>
         <div className="flex rounded-lg border border-line p-0.5 text-xs font-semibold">
           {(["month", "timeline"] as View[]).map((v) => (
             <button
               key={v}
-              onClick={() => setView(v)}
+              onClick={() => {
+                setView(v);
+                setNav(null);
+              }}
               className={clsx("rounded-md px-3 py-1 capitalize", view === v ? "bg-navy-900 text-white" : "text-muted")}
             >
               {v}
@@ -75,7 +93,7 @@ export function CalendarView({ events, allEvents, classes, selectedId, classById
         <button className="btn btn-outline btn-sm !px-2" onClick={() => move(-1)} aria-label="Previous">
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <button className="btn btn-outline btn-sm" onClick={() => setCursor(new Date())}>
+        <button className="btn btn-outline btn-sm" onClick={goToday}>
           Today
         </button>
         <button className="btn btn-outline btn-sm !px-2" onClick={() => move(1)} aria-label="Next">
@@ -93,7 +111,8 @@ export function CalendarView({ events, allEvents, classes, selectedId, classById
             ))}
           </div>
 
-          <div className="grid grid-cols-7">
+          {/* The weeks share whatever height the pane has, so the month fills the screen. */}
+          <div key={bodyKey} className={clsx("grid flex-1 auto-rows-fr grid-cols-7", bodySlide)}>
             {days.map((d) => {
               const key = toKey(d);
               const muted = !isSameMonth(d, cursor);
@@ -103,7 +122,7 @@ export function CalendarView({ events, allEvents, classes, selectedId, classById
                   onClick={(ev) => onAddOnDate(key, { x: ev.clientX, y: ev.clientY })}
                   title="Click to add an entry"
                   className={clsx(
-                    "min-h-[64px] cursor-pointer border-r border-b border-line p-1 transition-colors hover:bg-navy-50/50 sm:min-h-[104px] [&:nth-child(7n)]:border-r-0",
+                    "min-h-[64px] cursor-pointer border-r border-b border-line p-1.5 transition-colors hover:bg-navy-50/50 sm:min-h-[112px] [&:nth-child(7n)]:border-r-0",
                     muted && "bg-paper/80",
                   )}
                 >
@@ -122,6 +141,7 @@ export function CalendarView({ events, allEvents, classes, selectedId, classById
         <p className="px-5 py-12 text-center text-sm text-muted">Join or create a class to see your week here.</p>
       ) : (
         // Days across, one row per class. Scrolls sideways on narrow screens with the class names pinned.
+        <div key={bodyKey} className={bodySlide || undefined}>
         <div className="overflow-x-auto">
           <div className="grid min-w-[760px] grid-cols-[minmax(132px,176px)_repeat(7,minmax(0,1fr))]">
             <div className="sticky left-0 z-10 border-r border-b border-line bg-white" />
@@ -181,6 +201,7 @@ export function CalendarView({ events, allEvents, classes, selectedId, classById
             })}
           </div>
         </div>
+        </div>
       )}
     </div>
   );
@@ -223,7 +244,7 @@ function EventChip({
       className={clsx(
         `type-${e.type}`,
         "relative flex w-full items-center gap-1 truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium",
-        isNew && "ring-2 ring-gold-500",
+        isNew && "ring-2 ring-navy-700",
       )}
       style={{ background: "var(--type-bg)", color: "var(--type)" }}
     >

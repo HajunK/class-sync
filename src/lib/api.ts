@@ -3,19 +3,19 @@
 import { auth } from "./firebase";
 
 /**
- * POST JSON to one of our API routes with the user's Firebase ID token.
+ * Sends a request to one of our API routes with the user's Firebase ID token.
  * If the server rejects the token (e.g. it went stale after the emulator
  * restarted), fetch a fresh token and try once more.
  */
-export async function postWithAuth<T>(url: string, body: unknown): Promise<T> {
+async function sendWithAuth<T>(url: string, body: BodyInit, headers: Record<string, string>): Promise<T> {
   const user = auth.currentUser;
   if (!user) throw new Error("You're signed out. Please sign in again.");
 
   const send = async (forceRefresh: boolean) =>
     fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken(forceRefresh)}` },
-      body: JSON.stringify(body),
+      headers: { ...headers, Authorization: `Bearer ${await user.getIdToken(forceRefresh)}` },
+      body,
     });
 
   let res = await send(false);
@@ -30,3 +30,9 @@ export async function postWithAuth<T>(url: string, body: unknown): Promise<T> {
   if (!res.ok) throw new Error(data.error || "Request failed.");
   return data as T;
 }
+
+/** POST JSON to one of our API routes, signed in. */
+export const postWithAuth = <T>(url: string, body: unknown) => sendWithAuth<T>(url, JSON.stringify(body), { "Content-Type": "application/json" });
+
+/** POST a file (multipart form) to one of our API routes, signed in. The browser sets the form's content type. */
+export const postFormWithAuth = <T>(url: string, form: FormData) => sendWithAuth<T>(url, form, {});

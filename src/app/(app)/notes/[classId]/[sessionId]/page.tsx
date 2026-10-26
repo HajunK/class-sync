@@ -105,7 +105,7 @@ function TitleInput({ value, onSave }: { value: string; onSave: (v: string) => v
       onChange={(e) => setV(e.target.value)}
       onBlur={() => v.trim() !== value && onSave(v)}
       onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-      className="w-full rounded px-1 font-serif text-lg font-semibold text-navy-900 outline-none hover:bg-paper focus:bg-paper"
+      className="w-full rounded px-1 font-heading text-lg font-bold text-navy-900 outline-none hover:bg-paper focus:bg-paper"
       aria-label="Lesson topic"
     />
   );
@@ -211,7 +211,7 @@ function ClassNote({
             {n.authorName}
           </button>
         ))}
-        <button className="btn btn-gold btn-sm ml-auto" onClick={run} disabled={busy || notes.length === 0}>
+        <button className="btn btn-primary btn-sm ml-auto" onClick={run} disabled={busy || notes.length === 0}>
           {busy ? <Spinner className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
           {busy ? "Merging…" : merged ? "Update with AI" : `Merge ${notes.length} note${notes.length === 1 ? "" : "s"} with AI`}
         </button>
@@ -231,7 +231,7 @@ function ClassNote({
             <MergedNoteView merged={merged} sources={sources} onSourceClick={onView} />
           ) : (
             <div className="py-16 text-center text-muted">
-              <Sparkles className="mx-auto h-8 w-8 text-gold-500" />
+              <Sparkles className="mx-auto h-8 w-8 text-gold-600" />
               <p className="mt-3 font-semibold text-navy-900">No class note yet</p>
               <p className="mt-1 text-sm">AI combines everyone&apos;s notes into one, removes repeats, and marks where notes disagree.</p>
             </div>

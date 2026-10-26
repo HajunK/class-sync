@@ -4,7 +4,8 @@ import clsx from "clsx";
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 
-export function CopyCode({ code, large }: { code: string; large?: boolean }) {
+/** large: a big display; compact: fits in a 30px bar (the class filter) without making it taller. */
+export function CopyCode({ code, large, compact }: { code: string; large?: boolean; compact?: boolean }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
@@ -19,8 +20,8 @@ export function CopyCode({ code, large }: { code: string; large?: boolean }) {
         }
       }}
       className={clsx(
-        "group inline-flex items-center gap-2 rounded-xl border border-dashed border-gold-600/60 bg-gold-50 font-mono font-bold tracking-[0.2em] text-navy-900 transition hover:border-solid hover:bg-gold-100",
-        large ? "px-4 py-2 text-xl" : "px-3 py-1.5 text-sm",
+        "group inline-flex items-center gap-2 rounded-xl border border-dashed border-navy-600/60 bg-gold-50 font-mono font-bold tracking-[0.2em] text-navy-900 transition hover:border-solid hover:bg-gold-100",
+        large ? "px-4 py-2 text-xl" : compact ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-sm",
       )}
       title="Copy class code"
     >

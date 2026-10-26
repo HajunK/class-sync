@@ -65,6 +65,17 @@ export function normalizeResult(raw: unknown, notes: MergeInputNote[], aliases: 
     }))
     .filter((k: { term: string }) => k.term);
 
+  // The model's own estimate of each student's share. Rescaled to add up to 100; left out if it gave nothing usable
+  // (then the note view estimates the shares from the cited sources instead).
+  const shares: Record<string, number> = {};
+  for (const c of Array.isArray(r.contributions) ? (r.contributions as Record<string, unknown>[]) : []) {
+    const id = mapSources(c?.source)[0];
+    const percent = parseFloat(String(c?.percent));
+    if (id && Number.isFinite(percent) && percent > 0) shares[id] = (shares[id] || 0) + percent;
+  }
+  const total = Object.values(shares).reduce((a, b) => a + b, 0);
+  const contributions = total > 0 ? Object.fromEntries(notes.map((n) => [n.id, Math.round(((shares[n.id] || 0) / total) * 1000) / 10])) : undefined;
+
   return {
     title: str(r.title) || "Merged class notes",
     overview: str(r.overview),
@@ -72,5 +83,7 @@ export function normalizeResult(raw: unknown, notes: MergeInputNote[], aliases: 
     conflicts,
     keyTerms,
     sourceNoteIds: notes.map((n) => n.id),
+    // Firestore rejects undefined, so the key is only there when there's a value.
+    ...(contributions && { contributions }),
   };
 }
