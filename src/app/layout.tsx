@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "sonner";
+import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { AuthProvider } from "@/lib/auth-context";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="flex min-h-full flex-col">
         <AuthProvider>{children}</AuthProvider>
+        <AnalyticsTracker />
         <Toaster position="bottom-right" richColors closeButton toastOptions={{ style: { borderRadius: 14 } }} />
       </body>
     </html>
